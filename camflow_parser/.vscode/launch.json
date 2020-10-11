@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": ["-i", "/home/priyanka/attack_camflow-0/camflow/output/trace1.data", "-o", "/home/priyanka/Downloads/first_graph"],
+            "args": ["-i", "/home/priyanka/attack_camflow-0/camflow/output/trace.data", "-o", "/home/priyanka/Downloads/first_graph"],
         }
     ]
 }

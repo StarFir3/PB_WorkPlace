@@ -7,11 +7,23 @@ import xxhash
 import time
 import datetime
 import tqdm
+import csv
 
 # make argparse arguments global
 CONSOLE_ARGUMENTS = None
 list_node = []
 list_edge = []
+
+
+def hashgen(l):
+    """Generate a single hash value from a list. @l is a list of
+    string values, which can be properties of a node/edge. This
+    function returns a single hashed integer value."""
+    hasher = xxhash.xxh64()
+    for e in l:
+        hasher.update(e)
+    return hasher.intdigest()
+
 
 def nodegen(node, node_type, uid):
     """Generate a single hash value for a CamFlow node.
@@ -129,322 +141,94 @@ def parse_all_edges(inputfile, outputfile, node_map, noencode):
     output = open(outputfile, "w+")
     description = '\x1b[6;30;42m[STATUS]\x1b[0m Parsing edges in CamFlow data from {}'.format(inputfile)
     pb = tqdm.tqdm(desc=description, mininterval=1.0, unit=" recs")
+    edge_possible_value = ["used", "wasGeneratedBy", "wasInformedBy", "wasDerivedFrom", "wasAssociatedWith"]
     with open(inputfile, 'r') as f:
         for line in f:
             pb.update()
             json_object = json.loads(line.decode("utf-8","ignore"))
-
-            if "used" in json_object:
-                used = json_object["used"]
-                for uid in used:
-                    if "prov:type" not in used[uid]:
-                        # an edge must have a type; if not,
-                        # we will have to skip the edge. Log
-                        # this issue if verbose is set.
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (used) record without type: {}".format(uid))
-                        continue
-                    else:
-                        edgetype = edgegen(used[uid], "used")
-                    # cf:id is used as logical timestamp to order edges
-                    if "cf:id" not in used[uid]:
-                        # an edge must have a logical timestamp;
-                        # if not we will have to skip the edge.
-                        # Log this issue if verbose is set.
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (used) record without logical timestamp: {}".format(uid))
-                        continue
-                    else:
-                        timestamp = used[uid]["cf:id"]
-                    if "prov:entity" not in used[uid]:
-                        # an edge's source node must exist;
-                        # if not, we will have to skip the
-                        # edge. Log this issue if verbose is set.
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (used/{}) record without source UUID: {}".format(used[uid]["prov:type"], uid))
-                        continue
-                    if "prov:activity" not in used[uid]:
-                        # an edge's destination node must exist;
-                        # if not, we will have to skip the edge.
-                        # Log this issue if verbose is set.
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (used/{}) record without destination UUID: {}".format(used[uid]["prov:type"], uid))
-                        continue
-                    srcUUID = used[uid]["prov:entity"]
-                    dstUUID = used[uid]["prov:activity"]
-                    # both source and destination node must
-                    # exist in @node_map; if not, we will
-                    # have to skip the edge. Log this issue
-                    # if verbose is set.
-                    if srcUUID not in node_map:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (used/{}) record with an unseen srcUUID: {}".format(used[uid]["prov:type"], uid))
-                        continue
-                    else:
-                        srcVal = node_map[srcUUID]
-                    if dstUUID not in node_map:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (used/{}) record with an unseen dstUUID: {}".format(used[uid]["prov:type"], uid))
-                        continue
-                    else:
-                        dstVal = node_map[dstUUID]
-                    if "cf:date" not in used[uid]:
-                        # an edge must have a timestamp; if
-                        # not, we will have to skip the edge.
-                        # Log this issue if verbose is set.
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (used) record without timestamp: {}".format(uid))
-                        continue
-                    else:
-                        # we only record @adjusted_ts if we need
-                        # to record stats of CamFlow dataset.
-                        if CONSOLE_ARGUMENTS.stats:
-                            ts_str = used[uid]["cf:date"]
-                            ts = time.mktime(datetime.datetime.strptime(ts_str, "%Y:%m:%dT%H:%M:%S").timetuple())
-                            adjusted_ts = ts - smallest_timestamp
-                    total_edges += 1
-                    if noencode:
-                        if CONSOLE_ARGUMENTS.stats:
-                            output.write("{}\t{}\t{}:{}:{}:{}:{}\n".format(srcUUID, dstUUID, srcVal, dstVal, edgetype, timestamp, adjusted_ts))
-                        else:
-                            output.write("{}\t{}\t{}:{}:{}:{}\n".format(srcUUID, dstUUID, srcVal, dstVal, edgetype, timestamp))
-                    else:
-                        if CONSOLE_ARGUMENTS.stats:
-                            output.write("{}\t{}\t{}:{}:{}:{}:{}\n".format(hashgen([srcUUID]), hashgen([dstUUID]), srcVal, dstVal, edgetype, timestamp, adjusted_ts))
-                        else:
-                            output.write("{}\t{}\t{}:{}:{}:{}\n".format(hashgen([srcUUID]), hashgen([dstUUID]), srcVal, dstVal, edgetype, timestamp))
-
-            if "wasGeneratedBy" in json_object:
-                wasGeneratedBy = json_object["wasGeneratedBy"]
-                for uid in wasGeneratedBy:
-                    if "prov:type" not in wasGeneratedBy[uid]:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasGeneratedBy) record without type: {}".format(uid))
-                        continue
-                    else:
-                        edgetype = edgegen(wasGeneratedBy[uid], "wasGeneratedBy")
-                    if "cf:id" not in wasGeneratedBy[uid]:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasGeneratedBy) record without logical timestamp: {}".format(uid))
-                        continue
-                    else:
-                        timestamp = wasGeneratedBy[uid]["cf:id"]
-                    if "prov:entity" not in wasGeneratedBy[uid]:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasGeneratedBy/{}) record without source UUID: {}".format(wasGeneratedBy[uid]["prov:type"], uid))
-                        continue
-                    if "prov:activity" not in wasGeneratedBy[uid]:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasGeneratedBy/{}) record without destination UUID: {}".format(wasGeneratedBy[uid]["prov:type"], uid))
-                        continue
-                    srcUUID = wasGeneratedBy[uid]["prov:activity"]
-                    dstUUID = wasGeneratedBy[uid]["prov:entity"]
-                    if srcUUID not in node_map:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasGeneratedBy/{}) record with an unseen srcUUID: {}".format(wasGeneratedBy[uid]["prov:type"], uid))
-                        continue
-                    else:
-                        srcVal = node_map[srcUUID]
-                    if dstUUID not in node_map:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasGeneratedBy/{}) record with an unsen dstUUID: {}".format(wasGeneratedBy[uid]["prov:type"], uid))
-                        continue
-                    else:
-                        dstVal = node_map[dstUUID]
-                    if "cf:date" not in wasGeneratedBy[uid]:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasGeneratedBy) record without timestamp: {}".format(uid))
-                        continue
-                    else:
-                        if CONSOLE_ARGUMENTS.stats:
-                            ts_str = wasGeneratedBy[uid]["cf:date"]
-                            ts = time.mktime(datetime.datetime.strptime(ts_str, "%Y:%m:%dT%H:%M:%S").timetuple())
-                            adjusted_ts = ts - smallest_timestamp
-                    total_edges += 1
-                    if noencode:
-                        if CONSOLE_ARGUMENTS.stats:
-                            output.write("{}\t{}\t{}:{}:{}:{}:{}\n".format(srcUUID, dstUUID, srcVal, dstVal, edgetype, timestamp, adjusted_ts))
-                        else:
-                            output.write("{}\t{}\t{}:{}:{}:{}\n".format(srcUUID, dstUUID, srcVal, dstVal, edgetype, timestamp))
-                    else:
-                        if CONSOLE_ARGUMENTS.stats:
-                            output.write("{}\t{}\t{}:{}:{}:{}:{}\n".format(hashgen([srcUUID]), hashgen([dstUUID]), srcVal, dstVal, edgetype, timestamp, adjusted_ts))
-                        else:
-                            output.write("{}\t{}\t{}:{}:{}:{}\n".format(hashgen([srcUUID]), hashgen([dstUUID]), srcVal, dstVal, edgetype, timestamp))
-	
-            if "wasInformedBy" in json_object:
-                wasInformedBy = json_object["wasInformedBy"]
-                for uid in wasInformedBy:
-                    if "prov:type" not in wasInformedBy[uid]:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasInformedBy) record without type: {}".format(uid))
-                        continue
-                    else:
-                        edgetype = edgegen(wasInformedBy[uid], "wasInformedBy")
-                    if "cf:id" not in wasInformedBy[uid]:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasInformedBy) record without logical timestamp: {}".format(uid))
-                        continue
-                    else:
-                        timestamp = wasInformedBy[uid]["cf:id"]
-                    if "prov:informant" not in wasInformedBy[uid]:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasInformedBy/{}) record without source UUID: {}".format(wasInformedBy[uid]["prov:type"], uid))
-                        continue
-                    if "prov:informed" not in wasInformedBy[uid]:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasInformedBy/{}) record without destination UUID: {}".format(wasInformedBy[uid]["prov:type"], uid))
-                        continue
-                    srcUUID = wasInformedBy[uid]["prov:informant"]
-                    dstUUID = wasInformedBy[uid]["prov:informed"]
-                    if srcUUID not in node_map:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasInformedBy/{}) record with an unseen srcUUID: {}".format(wasInformedBy[uid]["prov:type"], uid))
-                        continue
-                    else:
-                        srcVal = node_map[srcUUID]
-                    if dstUUID not in node_map:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasInformedBy/{}) record with an unseen dstUUID: {}".format(wasInformedBy[uid]["prov:type"], uid))
-                        continue
-                    else:
-                        dstVal = node_map[dstUUID]
-                    if "cf:date" not in wasInformedBy[uid]:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasInformedBy) record without timestamp: {}".format(uid))
-                        continue
-                    else:
-                        if CONSOLE_ARGUMENTS.stats:
-                            ts_str = wasInformedBy[uid]["cf:date"]
-                            ts = time.mktime(datetime.datetime.strptime(ts_str, "%Y:%m:%dT%H:%M:%S").timetuple())
-                            adjusted_ts = ts - smallest_timestamp
-                    total_edges += 1
-                    if noencode:
-                        if CONSOLE_ARGUMENTS.stats:
-                            output.write("{}\t{}\t{}:{}:{}:{}:{}\n".format(srcUUID, dstUUID, srcVal, dstVal, edgetype, timestamp, adjusted_ts))
-                        else:
-                            output.write("{}\t{}\t{}:{}:{}:{}\n".format(srcUUID, dstUUID, srcVal, dstVal, edgetype, timestamp))
-                    else:
-                        if CONSOLE_ARGUMENTS.stats:
-                            output.write("{}\t{}\t{}:{}:{}:{}:{}\n".format(hashgen([srcUUID]), hashgen([dstUUID]), srcVal, dstVal, edgetype, timestamp, adjusted_ts))
-                        else:
-                            output.write("{}\t{}\t{}:{}:{}:{}\n".format(hashgen([srcUUID]), hashgen([dstUUID]), srcVal, dstVal, edgetype, timestamp))
-
-            if "wasDerivedFrom" in json_object:
-                wasDerivedFrom = json_object["wasDerivedFrom"]
-                for uid in wasDerivedFrom:
-                    if "prov:type" not in wasDerivedFrom[uid]:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasDerivedFrom) record without type: {}".format(uid))
-                        continue
-                    else:
-                        edgetype = edgegen(wasDerivedFrom[uid], "wasDerivedFrom")
-                    if "cf:id" not in wasDerivedFrom[uid]:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasDerivedFrom) record without logical timestamp: {}".format(uid))
+            # var takes the value of "used", "wasGeneratedBy", "wasInformedBy", "wasDerivedFrom", "wasAssociatedWith"
+            for var in edge_possible_value:
+                if var in json_object:
+                    var_json_object = json_object[var]
+                    for uid in var_json_object:
+                        if "prov:type" not in var_json_object[uid]:
+                            # an edge must have a type; if not,
+                            # we will have to skip the edge. Log
+                            # this issue if verbose is set.
+                            if CONSOLE_ARGUMENTS.verbose:
+                                logging.debug("edge " + var + " record without type: {}".format(uid))
                             continue
-                    else:
-                        timestamp = wasDerivedFrom[uid]["cf:id"]
-                    if "prov:usedEntity" not in wasDerivedFrom[uid]:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasDerivedFrom/{}) record without source UUID: {}".format(wasDerivedFrom[uid]["prov:type"], uid))
-                        continue
-                    if "prov:generatedEntity" not in wasDerivedFrom[uid]:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasDerivedFrom/{}) record without destination UUID: {}".format(wasDerivedFrom[uid]["prov:type"], uid))
-                        continue
-                    srcUUID = wasDerivedFrom[uid]["prov:usedEntity"]
-                    dstUUID = wasDerivedFrom[uid]["prov:generatedEntity"]
-                    if srcUUID not in node_map:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasDerivedFrom/{}) record with an unseen srcUUID: {}".format(wasDerivedFrom[uid]["prov:type"], uid))
-                        continue
-                    else:
-                        srcVal = node_map[srcUUID]
-                    if dstUUID not in node_map:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasDerivedFrom/{}) record with an unseen dstUUID: {}".format(wasDerivedFrom[uid]["prov:type"], uid))
-                        continue
-                    else:
-                        dstVal = node_map[dstUUID]
-                    if "cf:date" not in wasDerivedFrom[uid]:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasDerivedFrom) record without timestamp: {}".format(uid))
-                        continue
-                    else:
-                        if CONSOLE_ARGUMENTS.stats:
-                            ts_str = wasDerivedFrom[uid]["cf:date"]
-                            ts = time.mktime(datetime.datetime.strptime(ts_str, "%Y:%m:%dT%H:%M:%S").timetuple())
-                            adjusted_ts = ts - smallest_timestamp
-                    total_edges += 1
-                    if noencode:
-                        if CONSOLE_ARGUMENTS.stats:
-                            output.write("{}\t{}\t{}:{}:{}:{}:{}\n".format(srcUUID, dstUUID, srcVal, dstVal, edgetype, timestamp, adjusted_ts))
                         else:
-                            output.write("{}\t{}\t{}:{}:{}:{}\n".format(srcUUID, dstUUID, srcVal, dstVal, edgetype, timestamp))
-                    else:
-                        if CONSOLE_ARGUMENTS.stats:
-                            output.write("{}\t{}\t{}:{}:{}:{}:{}\n".format(hashgen([srcUUID]), hashgen([dstUUID]), srcVal, dstVal, edgetype, timestamp, adjusted_ts))
+                            edgetype = edgegen(var_json_object[uid], var)
+                        # cf:id is used as logical timestamp to order edges
+                        if "cf:id" not in var_json_object[uid]:
+                            # an edge must have a logical timestamp;
+                            # if not we will have to skip the edge.
+                            # Log this issue if verbose is set.
+                            if CONSOLE_ARGUMENTS.verbose:
+                                logging.debug("edge " + var + " record without logical timestamp: {}".format(uid))
+                            continue
                         else:
-                            output.write("{}\t{}\t{}:{}:{}:{}\n".format(hashgen([srcUUID]), hashgen([dstUUID]), srcVal, dstVal, edgetype, timestamp))
+                            timestamp = var_json_object[uid]["cf:id"]
+                        if "prov:entity" not in var_json_object[uid]:
+                            # an edge's source node must exist;
+                            # if not, we will have to skip the
+                            # edge. Log this issue if verbose is set.
+                            if CONSOLE_ARGUMENTS.verbose:
+                                logging.debug("edge (" + var + "/{}) record without source UUID: {}".format(var[uid]["prov:type"], uid))
+                            continue
+                        if "prov:activity" not in var_json_object[uid]:
+                            # an edge's destination node must exist;
+                            # if not, we will have to skip the edge.
+                            # Log this issue if verbose is set.
+                            if CONSOLE_ARGUMENTS.verbose:
+                                logging.debug("edge (" + var + "/{}) record without destination UUID: {}".format(var[uid]["prov:type"], uid))
+                            continue
+                        srcUUID = var_json_object[uid]["prov:entity"]
+                        dstUUID = var_json_object[uid]["prov:activity"]
+                        # both source and destination node must
+                        # exist in @node_map; if not, we will
+                        # have to skip the edge. Log this issue
+                        # if verbose is set.
+                        if srcUUID not in node_map:
+                            if CONSOLE_ARGUMENTS.verbose:
+                                logging.debug("edge (" + var + "/{}) record with an unseen srcUUID: {}".format(var[uid]["prov:type"], uid))
+                            continue
+                        else:
+                            srcVal = node_map[srcUUID]
+                        if dstUUID not in node_map:
+                            if CONSOLE_ARGUMENTS.verbose:
+                                logging.debug("edge (" + var + "/{}) record with an unseen dstUUID: {}".format(var[uid]["prov:type"], uid))
+                            continue
+                        else:
+                            dstVal = node_map[dstUUID]
+                        if "cf:date" not in var_json_object[uid]:
+                            # an edge must have a timestamp; if
+                            # not, we will have to skip the edge.
+                            # Log this issue if verbose is set.
+                            if CONSOLE_ARGUMENTS.verbose:
+                                logging.debug("edge (" + var + ") record without timestamp: {}".format(uid))
+                            continue
+                        else:
+                            # we only record @adjusted_ts if we need
+                            # to record stats of CamFlow dataset.
+                            if CONSOLE_ARGUMENTS.stats:
+                                ts_str = var_json_object[uid]["cf:date"]
+                                ts = time.mktime(datetime.datetime.strptime(ts_str, "%Y:%m:%dT%H:%M:%S").timetuple())
+                                adjusted_ts = ts - smallest_timestamp
+                        total_edges += 1
+                        if noencode:
+                            if CONSOLE_ARGUMENTS.stats:
+                                output.write("{}\t{}\t{}:{}:{}:{}:{}\n".format(srcUUID, dstUUID, srcVal, dstVal, edgetype, timestamp, adjusted_ts))
+                            else:
+                                output.write("{}\t{}\t{}:{}:{}:{}\n".format(srcUUID, dstUUID, srcVal, dstVal, edgetype, timestamp))
+                        else:
+                            if CONSOLE_ARGUMENTS.stats:
+                                output.write("{}\t{}\t{}:{}:{}:{}:{}\n".format(hashgen([srcUUID]), hashgen([dstUUID]), srcVal, dstVal, edgetype, timestamp, adjusted_ts))
+                            else:
+                                output.write("{}\t{}\t{}:{}:{}:{}\n".format(hashgen([srcUUID]), hashgen([dstUUID]), srcVal, dstVal, edgetype, timestamp))
 
-            if "wasAssociatedWith" in json_object:
-                wasAssociatedWith = json_object["wasAssociatedWith"]
-                for uid in wasAssociatedWith:
-                    if "prov:type" not in wasAssociatedWith[uid]:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasAssociatedWith) record without type: {}".format(uid))
-                        continue
-                    else:
-                        edgetype = edgegen(wasAssociatedWith[uid], "wasAssociatedWith")
-                    if "cf:id" not in wasAssociatedWith[uid]:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasAssociatedWith) record without logical timestamp: {}".format(uid))
-                        continue
-                    else:
-                        timestamp = wasAssociatedWith[uid]["cf:id"]
-                    if "prov:agent" not in wasAssociatedWith[uid]:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasAssociatedWith/{}) record without source UUID: {}".format(wasAssociatedWith[uid]["prov:type"], uid))
-                        continue
-                    if "prov:activity" not in wasAssociatedWith[uid]:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasAssociatedWith/{}) record without destination UUID: {}".format(wasAssociatedWith[uid]["prov:type"], uid))
-                        continue
-                    srcUUID = wasAssociatedWith[uid]["prov:agent"]
-                    dstUUID = wasAssociatedWith[uid]["prov:activity"]
-                    if srcUUID not in node_map:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasAssociatedWith/{}) record with an unseen srcUUID: {}".format(wasAssociatedWith[uid]["prov:type"], uid))
-                        continue
-                    else:
-                        srcVal = node_map[srcUUID]
-                    if dstUUID not in node_map:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasAssociatedWith/{}) record with an unseen dstUUID: {}".format(wasAssociatedWith[uid]["prov:type"], uid))
-                        continue
-                    else:
-                        dstVal = node_map[dstUUID]
-                    if "cf:date" not in wasAssociatedWith[uid]:
-                        if CONSOLE_ARGUMENTS.verbose:
-                            logging.debug("edge (wasAssociatedWith) record without timestamp: {}".format(uid))
-                        continue
-                    else:
-                        if CONSOLE_ARGUMENTS.stats:
-                            ts_str = wasAssociatedWith[uid]["cf:date"]
-                            ts = time.mktime(datetime.datetime.strptime(ts_str, "%Y:%m:%dT%H:%M:%S").timetuple())
-                            adjusted_ts = ts - smallest_timestamp
-                    total_edges += 1
-                    if noencode:
-                        if CONSOLE_ARGUMENTS.stats:
-                            output.write("{}\t{}\t{}:{}:{}:{}:{}\n".format(srcUUID, dstUUID, srcVal, dstVal, edgetype, timestamp, adjusted_ts))
-                        else:
-                            output.write("{}\t{}\t{}:{}:{}:{}\n".format(srcUUID, dstUUID, srcVal, dstVal, edgetype, timestamp))
-                    else:
-                        if CONSOLE_ARGUMENTS.stats:
-                            output.write("{}\t{}\t{}:{}:{}:{}:{}\n".format(hashgen([srcUUID]), hashgen([dstUUID]), srcVal, dstVal, edgetype, timestamp, adjusted_ts))
-                        else:
-                            output.write("{}\t{}\t{}:{}:{}:{}\n".format(hashgen([srcUUID]), hashgen([dstUUID]), srcVal, dstVal, edgetype, timestamp))
+                
     f.close()
     output.close()
     pb.close()
@@ -469,9 +253,37 @@ if __name__ == "__main__":
 
     node_map = dict()
     parse_all_nodes(args.input, node_map)
-    print(list_node)
+    print("Finished Parsing Nodes")
+    #print(list_node)
     total_edges = parse_all_edges(args.input, args.output, node_map, args.noencode)
-    print(list_edge)
+    #print(list_edge)
+    print("Finished Parsing Edges")
+    # mat_list_node = []
+    # mat_list_edge = []
+    # for item in list_node:
+    #     mat_list_node.append(list(list_node))
+    # print("Finished Appending list of nodes")        
+    # for item in list_edge:
+    #     mat_list_edge.append(list(list_edge))
+    # print("Finished Appending list of edges")        
+
+    with open("node_matrix.csv", 'wb') as myfile:
+        writer = csv.DictWriter(myfile, fieldnames = ['uid', 'cf:id','node_type', 'prov:type', 'cf:pathname', 'prov:label', 'cf:machine_id', 'cf:version', 'cf:boot_id', 'cf:date', 'cf:epoch', 'cf:jiffies', 'cf:uid','cf:gid', 'cf:pid', 'cf:vpid', 'cf:XXXns', 'cf:secctx', 'cf:mode', 'cf:ino', 'cf:uuid', 'cf:length', 'cf:valid', 'cf:atime', 'cf:ctime', 'cf:mtime', 'cf:truncated',  'cf:content', 'cf:seq', 'cf:sender',  'cf:receiver', 'cf:address', 'cf:value' ])
+        writer.writeheader()
+        #wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+        wr = csv.writer(myfile, delimiter=',')
+        for item in list_node:
+            wr.writerow(item)
+    print("Finished Writing list of nodes")
+
+    with open("edge_matrix.csv", 'wb') as myfile:
+        writer = csv.DictWriter(myfile, fieldnames = ['uid','cf:id', 'prov:type', 'cf:boot_id', 'cf:machine_id', 'cf:date', 'cf:jiffies', 'prov:label', 'cf:allowed', 'prov:activity', 'prov:entity', 'cf:offset'])
+        writer.writeheader()        
+        #wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+        wr = csv.writer(myfile, delimiter=',')
+        for item in list_edge:
+            wr.writerow(item)            
+    print("Finished Writing list of edges")
 
     if args.stats:
         total_nodes = len(node_map)
