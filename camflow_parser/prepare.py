@@ -13,23 +13,13 @@ CONSOLE_ARGUMENTS = None
 list_node = []
 list_edge = []
 
-def hashgen(l):
- #   """Generate a single hash value from a list. @l is a list of
-  #  string values, which can be properties of a node/edge. This
- #   function returns a single hashed integer value."""
-    hasher = xxhash.xxh64()
-    for e in l:
-        hasher.update(e)
-    return hasher.intdigest()
-
-
 def nodegen(node, node_type, uid):
     """Generate a single hash value for a CamFlow node.
     We hash type information, SELinux security context, mode, and name.
     @node is the CamFlow node data, parsed as a dictionary. This
     function returns a single hashed integer value for the node."""
     l = list()
-    p = ['cf:id', 'prov:type', 'cf:pathname', 'prov:label', 'cf:machine_id', 'cf:version', 'cf:boot_id', 'cf:date', 'cf:epoch', 'cf:jiffies', 'cf:uid','cf:gid', 'cf:pid', 'cf:vpid', 'cf:XXXns', 'cf:secctx', 'cf:mode', 'cf:ino', 'cf:uuid', 'cf:length', 'cf:valid', 'cf:atime', 'cf:ctime', 'cf:mtime', 'cf:truncated',  'cf:content', 'cf:seq', 'cf:sender',  'cf:receiver', 'cf:address', 'cf:value' ]
+    list_node_feature = ['cf:id', 'prov:type', 'cf:pathname', 'prov:label', 'cf:machine_id', 'cf:version', 'cf:boot_id', 'cf:date', 'cf:epoch', 'cf:jiffies', 'cf:uid','cf:gid', 'cf:pid', 'cf:vpid', 'cf:XXXns', 'cf:secctx', 'cf:mode', 'cf:ino', 'cf:uuid', 'cf:length', 'cf:valid', 'cf:atime', 'cf:ctime', 'cf:mtime', 'cf:truncated',  'cf:content', 'cf:seq', 'cf:sender',  'cf:receiver', 'cf:address', 'cf:value' ]
     assert(node["prov:type"])               # CamFlow node must contain "prov:type" field
     
     ##l.append(node["prov:type"])
@@ -37,15 +27,14 @@ def nodegen(node, node_type, uid):
     # following fields. If not, we will
     # simply use N/A to represent absense.
 
-    for i in p:
-        if i in node:
-            l.append(node[i])
+    for feature in list_node_feature:
+        if feature in node:
+            l.append(node[feature])
         else:
             l.append('N/A')
 
     l.insert(1, node_type)
     l.insert(0, uid)
-
     list_node.append(l)
 
 
@@ -55,12 +44,12 @@ def edgegen(edge, edge_type):
     edge data, parsed as a dictionary. This function returns
     a single hashed integer value of the edge."""
     l = list()
-    q = ['cf:id', 'prov:type', 'cf:boot_id', 'cf:machine_id', 'cf:date', 'cf:jiffies', 'prov:label', 'cf:allowed', 'prov:activity', 'prov:entity', 'cf:offset']
+    list_edge_feature = ['cf:id', 'prov:type', 'cf:boot_id', 'cf:machine_id', 'cf:date', 'cf:jiffies', 'prov:label', 'cf:allowed', 'prov:activity', 'prov:entity', 'cf:offset']
     assert(edge["prov:type"])               # CamFlow edge must contain "prov:type" field
     #l.append(edge["prov:type"])
-    for j in q:
-        if j in edge:
-            l.append(edge[j])
+    for feature in list_edge_feature:
+        if feature in edge:
+            l.append(edge[feature])
         else:
             l.append('N/A')
     
@@ -68,13 +57,6 @@ def edgegen(edge, edge_type):
 
     list_edge.append(l)
     
-
-    #if "cf:flags" in edge:
-    #    l.append(edge["cf:flags"])
-    #else:
-    #    l.append("N/A")
-    #return hashgen(l)
-
 
 def parse_nodes(json_string, node_map):
     """Parse a CamFlow JSON string that may contain nodes ("activity" or "entity").
@@ -142,125 +124,6 @@ def parse_all_edges(inputfile, outputfile, node_map, noencode):
     smallest_timestamp = None
     # scan through the entire file to find the smallest timestamp from all the edges.
     # this step is only needed if we need to add some statistical information.
-    if CONSOLE_ARGUMENTS.stats:
-        description = '\x1b[6;30;42m[STATUS]\x1b[0m Scanning edges in CamFlow data from {}'.format(inputfile)
-        pb = tqdm.tqdm(desc=description, mininterval=1.0, unit=" recs")
-        with open(inputfile, 'r') as f:
-            for line in f:
-                pb.update()
-                json_object = json.loads(line.decode("utf-8","ignore"))
- 
-                if "used" in json_object:
-                    used = json_object["used"]
-                    for uid in used:
-                        if "prov:type" not in used[uid]:
-                            continue
-                        if "cf:date" not in used[uid]:
-                            continue
-                        if "prov:entity" not in used[uid]:
-                            continue
-                        if "prov:activity" not in used[uid]:
-                            continue
-                        srcUUID = used[uid]["prov:entity"]
-                        dstUUID = used[uid]["prov:activity"]
-                        if srcUUID not in node_map:
-                            continue
-                        if dstUUID not in node_map:
-                            continue
-                        timestamp_str = used[uid]["cf:date"]
-                        ts = time.mktime(datetime.datetime.strptime(timestamp_str, "%Y:%m:%dT%H:%M:%S").timetuple())
-                        if smallest_timestamp == None or ts < smallest_timestamp:
-                            smallest_timestamp = ts
-
-                if "wasGeneratedBy" in json_object:
-                    wasGeneratedBy = json_object["wasGeneratedBy"]
-                    for uid in wasGeneratedBy:
-                        if "prov:type" not in wasGeneratedBy[uid]:
-                            continue
-                        if "cf:date" not in wasGeneratedBy[uid]:
-                            continue
-                        if "prov:entity" not in wasGeneratedBy[uid]:
-                            continue
-                        if "prov:activity" not in wasGeneratedBy[uid]:
-                            continue
-                        srcUUID = wasGeneratedBy[uid]["prov:activity"]
-                        dstUUID = wasGeneratedBy[uid]["prov:entity"]
-                        if srcUUID not in node_map:
-                            continue
-                        if dstUUID not in node_map:
-                            continue
-                        timestamp_str = wasGeneratedBy[uid]["cf:date"]
-                        ts = time.mktime(datetime.datetime.strptime(timestamp_str, "%Y:%m:%dT%H:%M:%S").timetuple())
-                        if smallest_timestamp == None or ts < smallest_timestamp:
-                            smallest_timestamp = ts
-
-                if "wasInformedBy" in json_object:
-                    wasInformedBy = json_object["wasInformedBy"]
-                    for uid in wasInformedBy:
-                        if "prov:type" not in wasInformedBy[uid]:
-                            continue
-                        if "cf:date" not in wasInformedBy[uid]:
-                            continue
-                        if "prov:informant" not in wasInformedBy[uid]:
-                            continue
-                        if "prov:informed" not in wasInformedBy[uid]:
-                            continue
-                        srcUUID = wasInformedBy[uid]["prov:informant"]
-                        dstUUID = wasInformedBy[uid]["prov:informed"]
-                        if srcUUID not in node_map:
-                            continue
-                        if dstUUID not in node_map:
-                            continue
-                        timestamp_str = wasInformedBy[uid]["cf:date"]
-                        ts = time.mktime(datetime.datetime.strptime(timestamp_str, "%Y:%m:%dT%H:%M:%S").timetuple())
-                        if smallest_timestamp == None or ts < smallest_timestamp:
-                            smallest_timestamp = ts
-
-                if "wasDerivedFrom" in json_object:
-                    wasDerivedFrom = json_object["wasDerivedFrom"]
-                    for uid in wasDerivedFrom:
-                        if "prov:type" not in wasDerivedFrom[uid]:
-                            continue
-                        if "cf:date" not in wasDerivedFrom[uid]:
-                            continue
-                        if "prov:usedEntity" not in wasDerivedFrom[uid]:
-                            continue
-                        if "prov:generatedEntity" not in wasDerivedFrom[uid]:
-                            continue
-                        srcUUID = wasDerivedFrom[uid]["prov:usedEntity"]
-                        dstUUID = wasDerivedFrom[uid]["prov:generatedEntity"]
-                        if srcUUID not in node_map:
-                            continue
-                        if dstUUID not in node_map:
-                            continue
-                        timestamp_str = wasDerivedFrom[uid]["cf:date"]
-                        ts = time.mktime(datetime.datetime.strptime(timestamp_str, "%Y:%m:%dT%H:%M:%S").timetuple())
-                        if smallest_timestamp == None or ts < smallest_timestamp:
-                            smallest_timestamp = ts
-
-                if "wasAssociatedWith" in json_object:
-                    wasAssociatedWith = json_object["wasAssociatedWith"]
-                    for uid in wasAssociatedWith:
-                        if "prov:type" not in wasAssociatedWith[uid]:
-                            continue
-                        if "cf:date" not in wasAssociatedWith[uid]:
-                            continue
-                        if "prov:agent" not in wasAssociatedWith[uid]:
-                            continue
-                        if "prov:activity" not in wasAssociatedWith[uid]:
-                            continue
-                        srcUUID = wasAssociatedWith[uid]["prov:agent"]
-                        dstUUID = wasAssociatedWith[uid]["prov:activity"]
-                        if srcUUID not in node_map:
-                            continue
-                        if dstUUID not in node_map:
-                            continue
-                        timestamp_str = wasAssociatedWith[uid]["cf:date"]
-                        ts = time.mktime(datetime.datetime.strptime(timestamp_str, "%Y:%m:%dT%H:%M:%S").timetuple())
-                        if smallest_timestamp == None or ts < smallest_timestamp:
-                            smallest_timestamp = ts
-        f.close()
-        pb.close()
     
     # we will go through the CamFlow data (again) and output edgelist to a file
     output = open(outputfile, "w+")
