@@ -8,6 +8,10 @@ import time
 import datetime
 import tqdm
 import csv
+import numpy as np
+from sklearn import preprocessing
+#import torch
+#from torch_geometric.data import Data
 
 # make argparse arguments global
 CONSOLE_ARGUMENTS = None
@@ -31,7 +35,8 @@ def nodegen(node, node_type, uid):
     @node is the CamFlow node data, parsed as a dictionary. This
     function returns a single hashed integer value for the node."""
     l = list()
-    list_node_feature = ['cf:id', 'prov:type', 'cf:pathname', 'prov:label', 'cf:machine_id', 'cf:version', 'cf:boot_id', 'cf:date', 'cf:epoch', 'cf:jiffies', 'cf:uid','cf:gid', 'cf:pid', 'cf:vpid', 'cf:XXXns', 'cf:secctx', 'cf:mode', 'cf:ino', 'cf:uuid', 'cf:length', 'cf:valid', 'cf:atime', 'cf:ctime', 'cf:mtime', 'cf:truncated',  'cf:content', 'cf:seq', 'cf:sender',  'cf:receiver', 'cf:address', 'cf:value' ]
+    #list_node_feature = ['cf:id', 'prov:type', 'cf:pathname', 'prov:label', 'cf:machine_id', 'cf:version', 'cf:boot_id', 'cf:date', 'cf:epoch', 'cf:jiffies', 'cf:uid','cf:gid', 'cf:pid', 'cf:vpid', 'cf:XXXns', 'cf:secctx', 'cf:mode', 'cf:ino', 'cf:uuid', 'cf:length', 'cf:valid', 'cf:atime', 'cf:ctime', 'cf:mtime', 'cf:truncated',  'cf:content', 'cf:seq', 'cf:sender',  'cf:receiver', 'cf:address', 'cf:value' ]
+    list_node_feature = ['cf:id', 'prov:type']
     assert(node["prov:type"])               # CamFlow node must contain "prov:type" field
     
     ##l.append(node["prov:type"])
@@ -46,7 +51,8 @@ def nodegen(node, node_type, uid):
             l.append('N/A')
 
     l.insert(1, node_type)
-    l.insert(0, uid)
+    base64_data = uid
+    l.insert(0, base64_data)
     list_node.append(l)
 
 
@@ -56,7 +62,8 @@ def edgegen(edge, edge_type):
     edge data, parsed as a dictionary. This function returns
     a single hashed integer value of the edge."""
     l = list()
-    list_edge_feature = ['cf:id', 'prov:type', 'cf:boot_id', 'cf:machine_id', 'cf:date', 'cf:jiffies', 'prov:label', 'cf:allowed', 'prov:activity', 'prov:entity', 'cf:offset']
+    #list_edge_feature = ['cf:id', 'prov:type', 'cf:boot_id', 'cf:machine_id', 'cf:date', 'cf:jiffies', 'prov:label', 'cf:allowed', 'prov:activity', 'prov:entity', 'cf:offset']
+    list_edge_feature = ['cf:id', 'prov:type', 'prov:activity', 'prov:entity']
     assert(edge["prov:type"])               # CamFlow edge must contain "prov:type" field
     #l.append(edge["prov:type"])
     for feature in list_edge_feature:
@@ -235,6 +242,86 @@ def parse_all_edges(inputfile, outputfile, node_map, noencode):
     return total_edges
 
 
+
+def label_encode():
+    # Tranform Node List
+    # Sampel list_node one entry
+    #[[u'cf:AAAIAAAAACA68gAAA...AAAAAAAAA=', u'62010', 'Entity', u'path']
+
+    # Creating two np arrays for reference purpose; one for transforming and one for original
+    mat_list_node = np.array(list_node)
+    trans_mat_list_node = np.array(list_node)
+    # Transforming base64_id "cf:AAAIAAAAACA68gAAA...AAAAAAAAA=" to 0 to n-1
+    le_base64 = preprocessing.LabelEncoder()
+    base64_id = mat_list_node[:,0]
+    le_base64.fit(base64_id)
+    # Directly changing the trans_mat_list_node 
+    trans_mat_list_node[:,0] = le_base64.transform(trans_mat_list_node[:,0])
+
+    # Tranforming node_type "Entity and Activity" to 0 to 1
+    le_node_type = preprocessing.LabelEncoder()
+    node_type = mat_list_node[:,2]
+    le_node_type.fit(node_type)
+    trans_mat_list_node[:,2] = le_node_type.transform(trans_mat_list_node[:,2])
+    
+    # Tranforming prov_type from "path, address etc." to 0 to n -1
+    le_prov_type = preprocessing.LabelEncoder()
+    prov_type = mat_list_node[:,3]
+    le_prov_type.fit(prov_type)
+    trans_mat_list_node[:,3] = le_prov_type.transform(trans_mat_list_node[:,3])
+    
+
+    # Transform Edge List
+    # Removing entries with N/A for prov:activity and prov:entity
+    list_edge_wo_na = []
+    for item in list_edge:
+        src = item[3]
+        if src not in ['N/A']:
+            list_edge_wo_na.append(item)
+    mat_list_edge_wo_na = np.array(list_edge_wo_na)
+    trans_mat_list_edge_wo_na = np.array(list_edge_wo_na)
+    # Tranforming cf:AAAIAAAAACA68gAAA...AAAAAAAAA= in "prov:activity/ Source" and "prov:entity/ Dest"
+    trans_mat_list_edge_wo_na[:,3] = le_base64.transform(trans_mat_list_edge_wo_na[:,3])
+    trans_mat_list_edge_wo_na[:,4] = le_base64.transform(trans_mat_list_edge_wo_na[:,4])
+
+    # Tranforming edge_type from "used, WasGeneratedBy" etc to 0 to n - 1
+    le_edge_type = preprocessing.LabelEncoder()
+    edge_type = trans_mat_list_edge_wo_na[:,1]
+    le_edge_type.fit(edge_type)
+    trans_mat_list_edge_wo_na[:,1] = le_edge_type.transform(trans_mat_list_edge_wo_na[:,1])
+
+    # Tranforming prov_type_edge (such as memory_read, memory_write, open) to 0 to n - 1
+    le_prov_type_edge = preprocessing.LabelEncoder()
+    prov_type_edge = trans_mat_list_edge_wo_na[:,2]
+    le_prov_type_edge.fit(prov_type_edge)
+    trans_mat_list_edge_wo_na[:,2] = le_prov_type_edge.transform(trans_mat_list_edge_wo_na[:,2])
+
+    # Create Edge Matrix by extracting 3rd and 4th coloumn (Src and Destination)
+    src_array = trans_mat_list_edge_wo_na[:,3]
+    dst_array = trans_mat_list_edge_wo_na[:,4]
+    # Create a np array with size of src_array
+    mat_edge_list = np.zeros((src_array.size,2))
+    mat_edge_list[:,0] = src_array
+    mat_edge_list[:,1] = dst_array
+    # Create egde_index in COO format
+    edge_index = np.transpose(mat_edge_list)
+    np.savetxt("edge_index.csv", edge_index, delimiter=",")
+    #sorted_trans_mat_list_node = np.sort(trans_mat_list_node, axis = 0)
+    sorted_trans_mat_list_node = trans_mat_list_node[trans_mat_list_node[:,0].astype('int').argsort()]
+    node_feature = sorted_trans_mat_list_node.astype(np.int)
+    np.savetxt("node_feature_x.csv", node_feature, delimiter=",")
+    temp_edge_feature = trans_mat_list_edge_wo_na[:0-2]
+    edge_feature = temp_edge_feature.astype(np.int)
+    np.savetxt("edge_feature_x.csv", edge_feature, delimiter=",")
+
+
+    ## Put into CSV edge_index, trans_mat_list_edge_wo_na and trans_mat_list_node
+
+    print("Hello")
+
+
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Convert CamFlow JSON to Unicorn edgelist')
     parser.add_argument('-i', '--input', help='input CamFlow data file path', required=True)
@@ -268,7 +355,8 @@ if __name__ == "__main__":
     # print("Finished Appending list of edges")        
 
     with open("node_matrix.csv", 'wb') as myfile:
-        writer = csv.DictWriter(myfile, fieldnames = ['uid', 'cf:id','node_type', 'prov:type', 'cf:pathname', 'prov:label', 'cf:machine_id', 'cf:version', 'cf:boot_id', 'cf:date', 'cf:epoch', 'cf:jiffies', 'cf:uid','cf:gid', 'cf:pid', 'cf:vpid', 'cf:XXXns', 'cf:secctx', 'cf:mode', 'cf:ino', 'cf:uuid', 'cf:length', 'cf:valid', 'cf:atime', 'cf:ctime', 'cf:mtime', 'cf:truncated',  'cf:content', 'cf:seq', 'cf:sender',  'cf:receiver', 'cf:address', 'cf:value' ])
+        #writer = csv.DictWriter(myfile, fieldnames = ['uid', 'cf:id','node_type', 'prov:type', 'cf:pathname', 'prov:label', 'cf:machine_id', 'cf:version', 'cf:boot_id', 'cf:date', 'cf:epoch', 'cf:jiffies', 'cf:uid','cf:gid', 'cf:pid', 'cf:vpid', 'cf:XXXns', 'cf:secctx', 'cf:mode', 'cf:ino', 'cf:uuid', 'cf:length', 'cf:valid', 'cf:atime', 'cf:ctime', 'cf:mtime', 'cf:truncated',  'cf:content', 'cf:seq', 'cf:sender',  'cf:receiver', 'cf:address', 'cf:value' ])
+        writer = csv.DictWriter(myfile, fieldnames = ['base64_data', 'cf:id','node_type', 'prov:type'])
         writer.writeheader()
         #wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
         wr = csv.writer(myfile, delimiter=',')
@@ -277,13 +365,16 @@ if __name__ == "__main__":
     print("Finished Writing list of nodes")
 
     with open("edge_matrix.csv", 'wb') as myfile:
-        writer = csv.DictWriter(myfile, fieldnames = ['uid','cf:id', 'prov:type', 'cf:boot_id', 'cf:machine_id', 'cf:date', 'cf:jiffies', 'prov:label', 'cf:allowed', 'prov:activity', 'prov:entity', 'cf:offset'])
+        #writer = csv.DictWriter(myfile, fieldnames = ['uid','cf:id', 'prov:type', 'cf:boot_id', 'cf:machine_id', 'cf:date', 'cf:jiffies', 'prov:label', 'cf:allowed', 'prov:activity', 'prov:entity', 'cf:offset'])
+        writer = csv.DictWriter(myfile, fieldnames = ['cf:id', 'edge_type', 'prov:type', 'prov:activity', 'prov:entity'])
         writer.writeheader()        
         #wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
         wr = csv.writer(myfile, delimiter=',')
         for item in list_edge:
             wr.writerow(item)            
     print("Finished Writing list of edges")
+
+    label_encode()
 
     if args.stats:
         total_nodes = len(node_map)
