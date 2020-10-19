@@ -118,11 +118,11 @@ Graph Explosion Problem:
 - The above sample graph of program running a `TCP connect`.
 - That provanance graph of systems is large and usually spans over days and months which makes it difficult to analyse and identify the interesting (malicious) part.
 
-Easy Analysis Problem
+Security Analysis Problem
 
 - The security analyst must have tools to identify the malicious nodes and relevant activities in a fast and efficent manner.
 
-## What is required
+## Graph Output
 
 - To identify malicious/ interesting sub-graph from months of provenance data.
 
@@ -134,15 +134,13 @@ Easy Analysis Problem
 
 #### Possible Important features
 
-- Identify all the processes in the graph (Any new process spawned can be malicious example winword.exe executing cmd.exe or powershell.exe)
+- Identify all the processes in the graph (Any new process spawned can be malicious example winword.exe executing cmd.exe or powershell.exe). Refer the sample graph to understand the below:
   - node in the graph whose `prov_type` is `process_memory` and had an edge to a node with `prov_type` `path` having name of the executable file.
   - A node with `prov_type` `task` has multiple edges (for example `prov_type` `used` and `prov_label` having either `getattr`, `read`, `perm_read`) to node with `prov_type` `file`.
   - The node with `prov_type` `file` will have an edge to a node with `prov_type` `path` explaining the path of file accessed.
 
 - Identify all the sockets in the graph (which might be sending or receiving data from a Malicious server (command and control))
 
-- Identify all the file reads/writes in the graph (which might be reading a confidential file)
+- Identify all the file reads/writes in the graph (which might be reading a confidential file).
 
-#### Techniques
-
-Graph Grammer Rules
+- Identify the nodes with permission denied? (Do we capture this information. A subject was trying to access a object and got permission denied? and how we can find in graph?)
