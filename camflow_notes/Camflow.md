@@ -105,7 +105,7 @@ read, write, unknown, setuid, connect, open etc
 
 Provenance data in graph format.
 
-See a [Sample Provenance graph](./Images/camflow_sample_graph.svg)
+See a [Sample Provenance graph](https://raw.githubusercontent.com/StarFir3/PB_WorkPlace/main/camflow_notes/Images/camflow_sample_graph.svg)
 
 The above graph is for one small example of running a TCP client making a connection to `google.com` with the cmdline path `/home/vagrant/example/provenance/tcp-client`.
 
