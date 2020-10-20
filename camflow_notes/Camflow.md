@@ -107,7 +107,7 @@ Provenance data in graph format.
 
 See a [Sample Provenance graph](https://raw.githubusercontent.com/StarFir3/PB_WorkPlace/main/camflow_notes/Images/camflow_sample_graph.svg)
 
-The above graph is for one small example of running a TCP client making a connection to `google.com` with the cmdline path `/home/vagrant/example/provenance/tcp-client`.
+The above graph is for one small example of running a TCP client making a connection to `google.com` with the cmdline path `/home/vagrant/example/provenance/tcp-client`. The text on the circle denotes the `prov_type` and the text on the edge represents different edge type such as `Used`, `WasGeneratedBy` - `prov_type` of edge - `prov_label`.
 
 As the program accesses `google.com`, it needs to resolve the `domainname` to an `IPAddress`. It probably does a system call which accesses the files such as `/etc/resolv.conf`, `/etc/host.conf`,  `/etc/hosts` and others to convert the `domainname` to an `IPAddress`.
 
@@ -135,9 +135,9 @@ Security Analysis Problem
 #### Possible Important features
 
 - Identify all the processes in the graph (Any new process spawned can be malicious example winword.exe executing cmd.exe or powershell.exe). Refer the sample graph to understand the below:
-  - node in the graph whose `prov_type` is `process_memory` and had an edge to a node with `prov_type` `path` having name of the executable file.
-  - A node with `prov_type` `task` has multiple edges (for example `prov_type` `used` and `prov_label` having either `getattr`, `read`, `perm_read`) to node with `prov_type` `file`.
-  - The node with `prov_type` `file` will have an edge to a node with `prov_type` `path` explaining the path of file accessed.
+  - node in the graph whose `prov_type` is `process_memory` and had an edge to a node with `prov_type` `path` having name of the executable file. Refer the `/home/vagrant/examples/provenance/tcp-client` in the sample graph.
+  - A node with `prov_type` `task` has multiple edges (for example `prov_type` `used` and `prov_label` having either `getattr`, `read`, `perm_read`) to node with `prov_type` `file`. Refer the node with `prov_type` file near `/etc/resolv.conf`.
+  - The node with `prov_type` `file` will have an edge to a node with `prov_type` `path` explaining the path of file accessed. Refer `/etc/resolv.conf` in the sample graph.
 
 - Identify all the sockets in the graph (which might be sending or receiving data from a Malicious server (command and control))
 
