@@ -18,6 +18,7 @@ from sklearn.compose import ColumnTransformer
 
 # make argparse arguments global
 CONSOLE_ARGUMENTS = None
+OUTPUT_FOLDER = ""
 list_node = []
 list_edge = []
 
@@ -60,7 +61,7 @@ def nodegen(node, node_type, base64_data):
     list_node.append(l)
 
 
-def edgegen(edge, edge_type):
+def edgegen(edge, edge_type, node_map):
     """Generate a single hash value for a CamFlow edge. We
     hash type information and flags. @edge is the CamFlow
     edge data, parsed as a dictionary. This function returns
@@ -78,7 +79,17 @@ def edgegen(edge, edge_type):
     
     l.insert(1, edge_type)
 
-    list_edge.append(l)
+    if 'prov:activity' in edge and 'prov:entity' in edge:
+        srcUUID = edge["prov:entity"]
+        dstUUID = edge["prov:activity"]
+        # both source and destination node must
+        # exist in @node_map; if not, we will
+        # have to skip the edge. Log this issue
+        # if verbose is set.
+        if srcUUID not in node_map or dstUUID not in node_map:
+            pass
+        else:
+            list_edge.append(l)
     
 
 def parse_nodes(json_string, node_map):
@@ -88,9 +99,10 @@ def parse_nodes(json_string, node_map):
     value (in str) which represents the 'type' of the node. """
     try:
         # use "ignore" if non-decodeable exists in the @json_string
-        json_object = json.loads(json_string.decode("utf-8","ignore"))
+#        json_object = json.loads(json_string.decode("utf-8","ignore"))
+        json_object = json.loads(json_string)
     except Exception as e:
-        print("Exception ({}) occurred when parsing a node in JSON:".format(e))
+        print("\nException ({}) occurred when parsing a node in JSON:".format(e))
         print(json_string)
         exit(1)
     if "activity" in json_object:
@@ -156,7 +168,8 @@ def parse_all_edges(inputfile, outputfile, node_map, noencode):
     with open(inputfile, 'r') as f:
         for line in f:
             pb.update()
-            json_object = json.loads(line.decode("utf-8","ignore"))
+#            json_object = json.loads(line.decode("utf-8","ignore"))
+            json_object = json.loads(line)            
             # var takes the value of "used", "wasGeneratedBy", "wasInformedBy", "wasDerivedFrom", "wasAssociatedWith"
             for var in edge_possible_value:
                 if var in json_object:
@@ -170,7 +183,7 @@ def parse_all_edges(inputfile, outputfile, node_map, noencode):
                                 logging.debug("edge " + var + " record without type: {}".format(uid))
                             continue
                         else:
-                            edgetype = edgegen(var_json_object[uid], var)
+                            edgetype = edgegen(var_json_object[uid], var, node_map)
                         # cf:id is used as logical timestamp to order edges
                         if "cf:id" not in var_json_object[uid]:
                             # an edge must have a logical timestamp;
@@ -273,7 +286,7 @@ def label_encode_node():
     
     # Tranforming Node prov_type from "path, address etc." to 0, 1 
     # Performing Hot Encoding # Refer Hot Encoding
-    data_prov_type_node = asarray([['unknown'], ['string'], ['task'],['inode_unknown'], ['link'], ['file'],['directory'], ['char'], ['block'],['pipe'], ['socket'], ['msg'],['shm'], ['address'], ['sb'], ['path'],['disc_entity'], ['disc_activity'], ['disc_agent'],['machine'], ['packet'], ['iattr'], ['xattr'], ['packet_content'], ['argv'],['envp'], ['process_memory']])
+    data_prov_type_node = asarray([['unknown'], ['string'], ['task'],['inode_unknown'], ['link'], ['file'],['directory'], ['char'], ['block'],['pipe'], ['socket'], ['msg'],['shm'], ['address'], ['sb'], ['path'],['disc_entity'], ['disc_activity'], ['disc_agent'],['machine'], ['packet'], ['iattr'], ['xattr'], ['packet_content'], ['argv'],['envp'], ['process_memory'], ['mmaped_file']])
     # Creating a instance of One Hot Encoder
     enc_node = OneHotEncoder(sparse=False)
     enc_node.fit(data_prov_type_node)
@@ -302,7 +315,9 @@ def label_encode_node():
         node_header.append(str(item))
     node_header_str = str(node_header)
     fmt = ",".join(["%s"] + ["%10.6e"] * (node_feature.shape[1]-1))
-    np.savetxt("node_feature_x.csv", node_feature, fmt = fmt, header= node_header_str)
+    node_file = OUTPUT_FOLDER + "/" +  "node_feature_x.csv"
+    np.savetxt(node_file, node_feature, fmt = fmt, header= node_header_str)
+    print("Finish Label Encoding Nodes")
 
 
 
@@ -329,7 +344,7 @@ def label_encode_edge():
 
     # Tranforming prov_type_edge (such as memory_read, memory_write, open) to 0 to n - 1
     # Transforming Prov:type edge to 0,1
-    data_prov_type_edge = asarray([['unknown'], ['read'], ['read_ioctl'], ['write'], ['write_ioctl'], ['clone_mem'], ['msg_create'], ['socket_create'], ['socket_pair_create'], ['inode_create'], ['setuid'], ['setpgid'], ['getpgid'], ['sh_write'], ['memory_write'], ['bind'], ['connect'], ['connect_unix_stream'], ['listen'], ['accept'], ['open'], ['file_rcv'], ['file_lock'], ['file_sigio'], ['version_entity'], ['munmap'], ['shmdt'], ['link'], ['rename'], ['unlink'], ['symlink'], ['splice_in'], ['splice_out'], ['setattr'], ['setattr_inode'], ['accept_socket'], ['setxattr'], ['setxattr_inode'], ['removexattr'], ['removexattr_inode'], ['named'], ['addressed'], ['exec'], ['exec_task'], ['packet_content'], ['clone'], ['version_activity'], ['search'], ['getattr'], ['getxattr'], ['getxattr_inode'], ['listxattr'], ['read_link'], ['mmap_read'], ['mmap_exec'], ['mmap_write'], ['mmap_read_private'], ['mmap_exec_private'], ['mmap_write_private'], ['sh_read'], ['memory_read'], ['send'], ['send_packet'], ['send_unix'], ['send_msg'], ['send_msg_queue'], ['receive'], ['receive_packet'], ['receive_unix'], ['receive_msg'], ['receive_msg_queue'], ['perm_read'], ['perm_write'], ['perm_exec'], ['perm_append'], ['terminate_task'], ['terminate_proc'], ['free'], ['arg'], ['env'], ['log'], ['sh_attach_readv'], ['sh_attach_write'], ['sh_create_read'], ['sh_create_write'], ['load_file'], ['ran_on'], ['load_unknown'], ['load_firmware'], ['load_firmware_prealloc_buffer'], ['load_module'], ['load_kexec_image'], ['load_kexec_initramfs'], ['load_policy'], ['load_certificate'], ['load_undefined'], ['ptrace_attach'], ['ptrace_read'], ['ptrace_attach_task'], ['ptrace_read_task'], ['ptrace_traceme'], ['derived_disc'], ['generated_disc'], ['used_disc'], ['informed_disc'], ['influenced_disc'], ['associated_disc']])
+    data_prov_type_edge = asarray([['unknown'], ['read'], ['read_ioctl'], ['write'], ['write_ioctl'], ['clone_mem'], ['msg_create'], ['socket_create'], ['socket_pair_create'], ['inode_create'], ['setuid'], ['setpgid'], ['getpgid'], ['sh_write'], ['memory_write'], ['bind'], ['connect'], ['connect_unix_stream'], ['listen'], ['accept'], ['open'], ['file_rcv'], ['file_lock'], ['file_sigio'], ['version_entity'], ['munmap'], ['shmdt'], ['link'], ['rename'], ['unlink'], ['symlink'], ['splice_in'], ['splice_out'], ['setattr'], ['setattr_inode'], ['accept_socket'], ['setxattr'], ['setxattr_inode'], ['removexattr'], ['removexattr_inode'], ['named'], ['addressed'], ['exec'], ['exec_task'], ['packet_content'], ['clone'], ['version_activity'], ['search'], ['getattr'], ['getxattr'], ['getxattr_inode'], ['listxattr'], ['read_link'], ['mmap_read'], ['mmap_exec'], ['mmap_write'], ['mmap_read_private'], ['mmap_exec_private'], ['mmap_write_private'], ['sh_read'], ['memory_read'], ['send'], ['send_packet'], ['send_unix'], ['send_msg'], ['send_msg_queue'], ['receive'], ['receive_packet'], ['receive_unix'], ['receive_msg'], ['receive_msg_queue'], ['perm_read'], ['perm_write'], ['perm_exec'], ['perm_append'], ['terminate_task'], ['terminate_proc'], ['free'], ['arg'], ['env'], ['log'], ['sh_attach_read'], ['sh_attach_write'], ['sh_create_read'], ['sh_create_write'], ['load_file'], ['ran_on'], ['load_unknown'], ['load_firmware'], ['load_firmware_prealloc_buffer'], ['load_module'], ['load_kexec_image'], ['load_kexec_initramfs'], ['load_policy'], ['load_certificate'], ['load_undefined'], ['ptrace_attach'], ['ptrace_read'], ['ptrace_attach_task'], ['ptrace_read_task'], ['ptrace_traceme'], ['derived_disc'], ['generated_disc'], ['used_disc'], ['informed_disc'], ['influenced_disc'], ['associated_disc']])
 
     #creating a instace of One Hot Encoder
     enc_edge = OneHotEncoder(sparse=False)
@@ -366,7 +381,8 @@ def label_encode_edge():
         edge_header.append(str(item))
     edge_header_str = str(edge_header)
     fmt = ",".join(["%s"] + ["%10.6e"] * (edge_feature.shape[1]-1))
-    np.savetxt("edge_attr.csv", edge_feature, fmt = fmt, header= edge_header_str)
+    edge_attr_file = OUTPUT_FOLDER + "/" + "edge_attr.csv"
+    np.savetxt(edge_attr_file, edge_feature, fmt = fmt, header= edge_header_str)
 
     # Create Edge Matrix by extracting 3rd and 4th coloumn (Src and Destination)
     src_array = trans_mat_list_edge_wo_na[:,3]
@@ -378,11 +394,30 @@ def label_encode_edge():
     
     # Create egde_index in COO format
     edge_index = np.transpose(mat_edge_list)
-    np.savetxt("edge_index.csv", edge_index, delimiter=",")
+    edge_file = OUTPUT_FOLDER + "/" + "edge_index.csv"
+    np.savetxt(edge_file, edge_index, delimiter=",")
 
     ## Put into CSV edge_index, trans_mat_list_edge_wo_na and trans_mat_list_node
 
     print("Hello")
+
+def process_file(input_file, output_folder, args):
+    # A hack to run prepare.py from another module
+    global CONSOLE_ARGUMENTS
+    global OUTPUT_FOLDER
+    CONSOLE_ARGUMENTS = args
+    OUTPUT_FOLDER = output_folder
+    output_file = OUTPUT_FOLDER + "/" + "temp"
+
+
+    node_map = dict()
+    parse_all_nodes(input_file, node_map)
+    print("Finished Parsing Nodes")
+    total_edges = parse_all_edges(input_file, output_file, node_map, CONSOLE_ARGUMENTS.noencode)
+    print("Finished Parsing Edges")
+    label_encode_node()
+    label_encode_edge()
+
 
 
 
