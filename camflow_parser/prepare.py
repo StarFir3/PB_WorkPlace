@@ -325,6 +325,7 @@ def label_encode_edge():
 
     # Transform Edge List
     # Removing entries with N/A for prov:activity and prov:entity
+    print("Entering Label Encode Edge Function")
     list_edge_wo_na = []
     for item in list_edge:
         src = item[3]
@@ -345,7 +346,7 @@ def label_encode_edge():
     # Tranforming prov_type_edge (such as memory_read, memory_write, open) to 0 to n - 1
     # Transforming Prov:type edge to 0,1
     data_prov_type_edge = asarray([['unknown'], ['read'], ['read_ioctl'], ['write'], ['write_ioctl'], ['clone_mem'], ['msg_create'], ['socket_create'], ['socket_pair_create'], ['inode_create'], ['setuid'], ['setpgid'], ['getpgid'], ['sh_write'], ['memory_write'], ['bind'], ['connect'], ['connect_unix_stream'], ['listen'], ['accept'], ['open'], ['file_rcv'], ['file_lock'], ['file_sigio'], ['version_entity'], ['munmap'], ['shmdt'], ['link'], ['rename'], ['unlink'], ['symlink'], ['splice_in'], ['splice_out'], ['setattr'], ['setattr_inode'], ['accept_socket'], ['setxattr'], ['setxattr_inode'], ['removexattr'], ['removexattr_inode'], ['named'], ['addressed'], ['exec'], ['exec_task'], ['packet_content'], ['clone'], ['version_activity'], ['search'], ['getattr'], ['getxattr'], ['getxattr_inode'], ['listxattr'], ['read_link'], ['mmap_read'], ['mmap_exec'], ['mmap_write'], ['mmap_read_private'], ['mmap_exec_private'], ['mmap_write_private'], ['sh_read'], ['memory_read'], ['send'], ['send_packet'], ['send_unix'], ['send_msg'], ['send_msg_queue'], ['receive'], ['receive_packet'], ['receive_unix'], ['receive_msg'], ['receive_msg_queue'], ['perm_read'], ['perm_write'], ['perm_exec'], ['perm_append'], ['terminate_task'], ['terminate_proc'], ['free'], ['arg'], ['env'], ['log'], ['sh_attach_read'], ['sh_attach_write'], ['sh_create_read'], ['sh_create_write'], ['load_file'], ['ran_on'], ['load_unknown'], ['load_firmware'], ['load_firmware_prealloc_buffer'], ['load_module'], ['load_kexec_image'], ['load_kexec_initramfs'], ['load_policy'], ['load_certificate'], ['load_undefined'], ['ptrace_attach'], ['ptrace_read'], ['ptrace_attach_task'], ['ptrace_read_task'], ['ptrace_traceme'], ['derived_disc'], ['generated_disc'], ['used_disc'], ['informed_disc'], ['influenced_disc'], ['associated_disc']])
-
+    print("Before Fitting Hot Encode Edge Function")
     #creating a instace of One Hot Encoder
     enc_edge = OneHotEncoder(sparse=False)
     enc_edge.fit(data_prov_type_edge)
@@ -368,7 +369,7 @@ def label_encode_edge():
     # Delete column 2 with axis 1; Axis 1 is for column
     temp_edge_3 = np.delete(temp_edge_2, 2, 1)
     edge_prov_type_labels = enc_edge.get_feature_names()
-
+    print("Before Sorting Hot Encode Edge Function")
     # # Sorting the Node Matrix with cf:id
 
     # trans_mat_list_edge_wo_na = temp_edge_3.astype(np.int)
@@ -399,7 +400,7 @@ def label_encode_edge():
 
     ## Put into CSV edge_index, trans_mat_list_edge_wo_na and trans_mat_list_node
 
-    print("Hello")
+    print("Finished Edge Hot Encoding")
 
 def process_file(input_file, output_folder, args):
     # A hack to run prepare.py from another module

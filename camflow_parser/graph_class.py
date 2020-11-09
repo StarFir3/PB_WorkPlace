@@ -50,6 +50,7 @@ class MyOwnDataset(Dataset):
                 if f.endswith(".tar.gz"):
                     tar_file_name = f.rstrip(".tar.gz")
 
+                    file_name = TAR_LOCATION + "/" + f
                     # Check if folder exits in TAR_EXTRACTION_LOCATION, if not, extract
                     if not os.path.exists(TAR_EXTRACTION_LOCATION + "/" + tar_file_name):
                         tar = tarfile.open(file_name, 'r:gz')
@@ -128,7 +129,8 @@ if __name__ == "__main__":
     dataset = DataLoader(graph_dataset)
     print(graph_dataset.len())
     data = graph_dataset.get(0)
-    print(data.num_features)
-    print(dataset.num_classes)
+    #print(data.num_features)
+    #print(dataset.num_classes)
+
 
 
