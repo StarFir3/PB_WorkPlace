@@ -310,13 +310,14 @@ def label_encode_node():
     sorted_trans_mat_list_node = trans_mat_list_node[trans_mat_list_node[:,0].astype('int').argsort()]
     node_feature = sorted_trans_mat_list_node.astype(np.int)
     # Writing Node Feature Matrix
-    node_header = ['base64_data', 'cf:id','node_type']
+    node_header = ["base64_data", "cf:id","node_type"]
     for item in prov_type_labels:
         node_header.append(str(item))
-    node_header_str = str(node_header)
+    node_header_str = str(node_header).strip('[]')
     fmt = ",".join(["%s"] + ["%10.6e"] * (node_feature.shape[1]-1))
     node_file = OUTPUT_FOLDER + "/" +  "node_feature_x.csv"
-    np.savetxt(node_file, node_feature, fmt = fmt, header= node_header_str)
+    print(node_header_str)
+    np.savetxt(node_file, node_feature, fmt = fmt, header= node_header_str, comments='' )
     print("Finish Label Encoding Nodes")
 
 
@@ -380,10 +381,10 @@ def label_encode_edge():
     edge_header = ['cf:id', 'edge_type', 'prov:activity', 'prov:entity']
     for item in edge_prov_type_labels:
         edge_header.append(str(item))
-    edge_header_str = str(edge_header)
+    edge_header_str = str(edge_header).strip('[]')
     fmt = ",".join(["%s"] + ["%10.6e"] * (edge_feature.shape[1]-1))
     edge_attr_file = OUTPUT_FOLDER + "/" + "edge_attr.csv"
-    np.savetxt(edge_attr_file, edge_feature, fmt = fmt, header= edge_header_str)
+    np.savetxt(edge_attr_file, edge_feature, fmt = fmt, header= edge_header_str, comments='' )
 
     # Create Edge Matrix by extracting 3rd and 4th coloumn (Src and Destination)
     src_array = trans_mat_list_edge_wo_na[:,3]
@@ -447,7 +448,8 @@ if __name__ == "__main__":
 
     with open("node_matrix.csv", 'wb') as myfile:
         #writer = csv.DictWriter(myfile, fieldnames = ['uid', 'cf:id','node_type', 'prov:type', 'cf:pathname', 'prov:label', 'cf:machine_id', 'cf:version', 'cf:boot_id', 'cf:date', 'cf:epoch', 'cf:jiffies', 'cf:uid','cf:gid', 'cf:pid', 'cf:vpid', 'cf:XXXns', 'cf:secctx', 'cf:mode', 'cf:ino', 'cf:uuid', 'cf:length', 'cf:valid', 'cf:atime', 'cf:ctime', 'cf:mtime', 'cf:truncated',  'cf:content', 'cf:seq', 'cf:sender',  'cf:receiver', 'cf:address', 'cf:value' ])
-        writer = csv.DictWriter(myfile, fieldnames = ['base64_data', 'cf:id','node_type', 'prov:type'])
+        fieldnames = ['base64_data', 'cf:id','node_type', 'prov:type']
+        writer = csv.DictWriter(myfile, fieldnames = fieldnames)
         writer.writeheader()
         #wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
         wr = csv.writer(myfile, delimiter=',')
@@ -457,7 +459,8 @@ if __name__ == "__main__":
 
     with open("edge_matrix.csv", 'wb') as myfile:
         #writer = csv.DictWriter(myfile, fieldnames = ['uid','cf:id', 'prov:type', 'cf:boot_id', 'cf:machine_id', 'cf:date', 'cf:jiffies', 'prov:label', 'cf:allowed', 'prov:activity', 'prov:entity', 'cf:offset'])
-        writer = csv.DictWriter(myfile, fieldnames = ['cf:id', 'edge_type', 'prov:type', 'prov:activity', 'prov:entity'])
+        fieldnames = ['cf:id', 'edge_type', 'prov:type', 'prov:activity', 'prov:entity']
+        writer = csv.DictWriter(myfile, fieldnames = fieldnames)
         writer.writeheader()        
         #wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
         wr = csv.writer(myfile, delimiter=',')
