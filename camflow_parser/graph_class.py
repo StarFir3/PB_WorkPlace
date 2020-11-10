@@ -7,7 +7,7 @@ from torch_geometric.data import Dataset
 from torch_geometric.data import Data, DataLoader
 import networkx as nx
 from numpy import genfromtxt
-from graphlime import GraphLIME
+#from graphlime import GraphLIME
 from torch_geometric.nn import GCNConv
 from torch.nn import Linear
 import torch.nn.functional as F
@@ -20,8 +20,8 @@ from torch_geometric.utils.convert import to_networkx
 CONSOLE_ARGUMENTS = None
 
 
-TAR_LOCATION = "/home/priyanka/PB_WorkPlace/prov-data-tar"
-TAR_EXTRACTION_LOCATION = "/home/priyanka/PB_WorkPlace/prov-data-main"
+TAR_LOCATION = "/home/priyanka/PB_WorkPlace/prov_data_tar"
+TAR_EXTRACTION_LOCATION = "/home/priyanka/PB_WorkPlace/prov_data_main"
 CSV_FILES = "/home/priyanka/PB_WorkPlace/prov_data_csv"
 
 class MyOwnDataset(Dataset):
