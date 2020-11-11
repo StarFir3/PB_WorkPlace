@@ -62,20 +62,21 @@ class MyOwnDataset(Dataset):
                     csv_folder = CSV_FILES + "/" + tar_file_name
                     if not os.path.exists(csv_folder):
                         os.mkdir(csv_folder)
-                    # Process trace.data
+                    # Process trace.data by calling prepare module which process the trace.data and generates
+                    # edge_index.csv, node_feature_x.csv and edge_attr.csv
                     prepare.process_file(trace_file, csv_folder, CONSOLE_ARGUMENTS) 
 
-                    # Create Edge Index
+                    # Create Edge Index by reading edge_index.csv
                     filename_edge_index = csv_folder + "/" + 'edge_index.csv'
                     data_edge_index = genfromtxt(filename_edge_index, delimiter=',', skip_header = 1)
                     edge_index = torch.tensor(data_edge_index, dtype = torch.long)
 
-                    # Create Node Feature
+                    # Create Node Feature by reading node_feature_x.csv
                     filename_node_feature = csv_folder + "/" + 'node_feature_x.csv'
                     data_node_feature = genfromtxt(filename_node_feature, delimiter=',', skip_header = 1)
                     node_feature = torch.tensor(data_node_feature, dtype = torch.float)
 
-                    # Create Edge Feature
+                    # Create Edge Feature by reading edge_attr.csv
                     filename_edge_feature = csv_folder + "/" + 'edge_attr.csv'
                     data_edge_feature = genfromtxt(filename_edge_feature, delimiter=',', skip_header = 1)
                     edge_feature = torch.tensor(data_edge_feature, dtype = torch.long)
