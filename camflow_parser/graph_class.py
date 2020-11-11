@@ -67,17 +67,17 @@ class MyOwnDataset(Dataset):
 
                     # Create Edge Index
                     filename_edge_index = csv_folder + "/" + 'edge_index.csv'
-                    data_edge_index = genfromtxt(filename_edge_index, delimiter=',')
+                    data_edge_index = genfromtxt(filename_edge_index, delimiter=',', skip_header = 1)
                     edge_index = torch.tensor(data_edge_index, dtype = torch.long)
 
                     # Create Node Feature
                     filename_node_feature = csv_folder + "/" + 'node_feature_x.csv'
-                    data_node_feature = genfromtxt(filename_node_feature, delimiter=',')
+                    data_node_feature = genfromtxt(filename_node_feature, delimiter=',', skip_header = 1)
                     node_feature = torch.tensor(data_node_feature, dtype = torch.float)
 
                     # Create Edge Feature
                     filename_edge_feature = csv_folder + "/" + 'edge_attr.csv'
-                    data_edge_feature = genfromtxt(filename_edge_feature, delimiter=',')
+                    data_edge_feature = genfromtxt(filename_edge_feature, delimiter=',', skip_header = 1)
                     edge_feature = torch.tensor(data_edge_feature, dtype = torch.long)
 
                     # Classify graph based on Malicious/ Not Malicious
@@ -88,6 +88,7 @@ class MyOwnDataset(Dataset):
 
 
                     # Create Data instance a `torch_geometric.data.Data` object
+                    data = None
                     data = Data(x=node_feature, edge_index=edge_index, edge_attr=edge_feature, y=y)
 
                 # for raw_path in self.raw_paths:
@@ -129,8 +130,7 @@ if __name__ == "__main__":
     dataset = DataLoader(graph_dataset)
     print(graph_dataset.len())
     data = graph_dataset.get(0)
-    #print(data.num_features)
-    #print(dataset.num_classes)
+
 
 
 

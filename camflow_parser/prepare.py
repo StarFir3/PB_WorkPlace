@@ -409,7 +409,7 @@ def label_encode_edge():
     temp_prov = enc_prov_type.transform(a_prov_type)
 
     # adding more columns as we have same number of rows
-    temp_edge_2 = hstack((temp_edge, temp_prov), dtype=int)
+    temp_edge_2 = hstack((temp_edge, temp_prov))
     temp_edge_3 = temp_edge_2.toarray()
   
     prov_type_labels = enc_prov_type.get_feature_names()
