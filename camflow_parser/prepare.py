@@ -263,6 +263,7 @@ def parse_all_edges(inputfile, outputfile, node_map, noencode):
 def label_encode_node():
     # Tranform Node List
     # Sampel list_node one entry
+    # Base64_id, node_id, node_type, prov_type
     #[[u'cf:AAAIAAAAACA68gAAA...AAAAAAAAA=', u'62010', 'Entity', u'path']
 
     # Creating two np arrays for reference purpose; one for transforming and one for original
@@ -292,6 +293,10 @@ def label_encode_node():
     enc_node.fit(data_prov_type_node)
     # Copying the prov:type column from the transformed_mat_list_node -- node matrix
     prov_type = trans_mat_list_node[:,3]
+    # delete column (prov_type) before combining onehot code
+    del_prov_type = np.delete(trans_mat_list_node,3,1)
+
+
     # Converting it into list of list (array)! Should be better way
     temp_list_2 = []
     for item in prov_type:
@@ -301,12 +306,12 @@ def label_encode_node():
     # Transformed the prov_type
     temp = enc_node.transform(a_prov_type)
     # Horizontally stack the matrix. A | B = AB (We are just adding more columns as we have same number of rows)
-    temp2 = np.hstack((trans_mat_list_node, temp.astype(np.int)))
+    temp2 = np.hstack((del_prov_type, temp.astype(np.int)))
     # Delete column 3 with axis 1; Axis 1 is for column
-    temp3 = np.delete(temp2, 3, 1)
+    #temp3 = np.delete(temp2, 3, 1)
     prov_type_labels = enc_node.get_feature_names()
     # Sorting the Node Matrix with base64_id
-    trans_mat_list_node = temp3.astype(np.int)
+    trans_mat_list_node = temp2.astype(np.int)
     sorted_trans_mat_list_node = trans_mat_list_node[trans_mat_list_node[:,0].astype('int').argsort()]
     node_feature = sorted_trans_mat_list_node.astype(np.int)
     # Writing Node Feature Matrix
@@ -316,7 +321,7 @@ def label_encode_node():
     node_header_str = str(node_header).strip('[]')
     fmt = ",".join(["%s"] + ["%10.6e"] * (node_feature.shape[1]-1))
     node_file = OUTPUT_FOLDER + "/" +  "node_feature_x.csv"
-    print(node_header_str)
+    #print(node_header_str)
     np.savetxt(node_file, node_feature, fmt = fmt, header= node_header_str, comments='' )
     print("Finish Label Encoding Nodes")
 
@@ -354,6 +359,7 @@ def label_encode_edge():
 
     # Copying edge prov:type column from the trans_mat_list_edge_wo_na -- node matrix
     edge_prov_type = trans_mat_list_edge_wo_na[:,2]
+    del_edge_prov_type = np.delete(trans_mat_list_edge_wo_na, 2, 1)
 
     # Converting it into list of list (array)!
     edge_temp_list = []
@@ -365,17 +371,16 @@ def label_encode_edge():
     # Transformed the a_edge_prov_type
     temp_edge = enc_edge.transform(a_edge_prov_type)
     # adding more columns as we have same number of rows
-    temp_edge_2 = np.hstack((trans_mat_list_edge_wo_na, temp_edge.astype(np.int)))
+    temp_edge_2 = np.hstack((del_edge_prov_type, temp_edge.astype(np.int)))
 
     # Delete column 2 with axis 1; Axis 1 is for column
-    temp_edge_3 = np.delete(temp_edge_2, 2, 1)
+    #temp_edge_3 = np.delete(temp_edge_2, 2, 1)
     edge_prov_type_labels = enc_edge.get_feature_names()
-    print("Before Sorting Hot Encode Edge Function")
     # # Sorting the Node Matrix with cf:id
 
     # trans_mat_list_edge_wo_na = temp_edge_3.astype(np.int)
     # sorted_trans_mat_list_edge = trans_mat_list_edge_wo_na[trans_mat_list_edge_wo_na[:,0].astype('int').argsort()]
-    edge_feature = temp_edge_3.astype(np.int)
+    edge_feature = temp_edge_2.astype(np.int)
 
     # Writing Edge Feature Matrix
     edge_header = ['cf:id', 'edge_type', 'prov:activity', 'prov:entity']
