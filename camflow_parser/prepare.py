@@ -13,6 +13,9 @@ from sklearn import preprocessing
 from numpy import asarray
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import ColumnTransformer 
+from scipy.sparse import hstack
+from scipy.sparse import csr_matrix
+
 #import torch
 #from torch_geometric.data import Data
 
@@ -339,59 +342,14 @@ def label_encode_edge():
             list_edge_wo_na.append(item)
     mat_list_edge_wo_na = np.array(list_edge_wo_na)
     trans_mat_list_edge_wo_na = np.array(list_edge_wo_na)
+
+
     # Tranforming cf:AAAIAAAAACA68gAAA...AAAAAAAAA= in "prov:activity/ Source" and "prov:entity/ Dest"
     trans_mat_list_edge_wo_na[:,3] = le_base64.transform(trans_mat_list_edge_wo_na[:,3])
     trans_mat_list_edge_wo_na[:,4] = le_base64.transform(trans_mat_list_edge_wo_na[:,4])
 
-    # Tranforming edge_type from "used, WasGeneratedBy" etc to 0 to n - 1
-    le_edge_type = preprocessing.LabelEncoder()
-    edge_type = trans_mat_list_edge_wo_na[:,1]
-    le_edge_type.fit(edge_type)
-    trans_mat_list_edge_wo_na[:,1] = le_edge_type.transform(trans_mat_list_edge_wo_na[:,1])
 
-    # Tranforming prov_type_edge (such as memory_read, memory_write, open) to 0 to n - 1
-    # Transforming Prov:type edge to 0,1
-    data_prov_type_edge = asarray([['unknown'], ['read'], ['read_ioctl'], ['write'], ['write_ioctl'], ['clone_mem'], ['msg_create'], ['socket_create'], ['socket_pair_create'], ['inode_create'], ['setuid'], ['setpgid'], ['getpgid'], ['sh_write'], ['memory_write'], ['bind'], ['connect'], ['connect_unix_stream'], ['listen'], ['accept'], ['open'], ['file_rcv'], ['file_lock'], ['file_sigio'], ['version_entity'], ['munmap'], ['shmdt'], ['link'], ['rename'], ['unlink'], ['symlink'], ['splice_in'], ['splice_out'], ['setattr'], ['setattr_inode'], ['accept_socket'], ['setxattr'], ['setxattr_inode'], ['removexattr'], ['removexattr_inode'], ['named'], ['addressed'], ['exec'], ['exec_task'], ['packet_content'], ['clone'], ['version_activity'], ['search'], ['getattr'], ['getxattr'], ['getxattr_inode'], ['listxattr'], ['read_link'], ['mmap_read'], ['mmap_exec'], ['mmap_write'], ['mmap_read_private'], ['mmap_exec_private'], ['mmap_write_private'], ['sh_read'], ['memory_read'], ['send'], ['send_packet'], ['send_unix'], ['send_msg'], ['send_msg_queue'], ['receive'], ['receive_packet'], ['receive_unix'], ['receive_msg'], ['receive_msg_queue'], ['perm_read'], ['perm_write'], ['perm_exec'], ['perm_append'], ['terminate_task'], ['terminate_proc'], ['free'], ['arg'], ['env'], ['log'], ['sh_attach_read'], ['sh_attach_write'], ['sh_create_read'], ['sh_create_write'], ['load_file'], ['ran_on'], ['load_unknown'], ['load_firmware'], ['load_firmware_prealloc_buffer'], ['load_module'], ['load_kexec_image'], ['load_kexec_initramfs'], ['load_policy'], ['load_certificate'], ['load_undefined'], ['ptrace_attach'], ['ptrace_read'], ['ptrace_attach_task'], ['ptrace_read_task'], ['ptrace_traceme'], ['derived_disc'], ['generated_disc'], ['used_disc'], ['informed_disc'], ['influenced_disc'], ['associated_disc']])
-    print("Before Fitting Hot Encode Edge Function")
-    #creating a instace of One Hot Encoder
-    enc_edge = OneHotEncoder(sparse=False)
-    enc_edge.fit(data_prov_type_edge)
-
-    # Copying edge prov:type column from the trans_mat_list_edge_wo_na -- node matrix
-    edge_prov_type = trans_mat_list_edge_wo_na[:,2]
-    del_edge_prov_type = np.delete(trans_mat_list_edge_wo_na, 2, 1)
-
-    # Converting it into list of list (array)!
-    edge_temp_list = []
-    for item in edge_prov_type:
-        edge_list = [item]
-        edge_temp_list.append(edge_list)
-    a_edge_prov_type = np.array(edge_temp_list)
-
-    # Transformed the a_edge_prov_type
-    temp_edge = enc_edge.transform(a_edge_prov_type)
-    # adding more columns as we have same number of rows
-    temp_edge_2 = np.hstack((del_edge_prov_type, temp_edge.astype(np.int)))
-
-    # Delete column 2 with axis 1; Axis 1 is for column
-    #temp_edge_3 = np.delete(temp_edge_2, 2, 1)
-    edge_prov_type_labels = enc_edge.get_feature_names()
-    # # Sorting the Node Matrix with cf:id
-
-    # trans_mat_list_edge_wo_na = temp_edge_3.astype(np.int)
-    # sorted_trans_mat_list_edge = trans_mat_list_edge_wo_na[trans_mat_list_edge_wo_na[:,0].astype('int').argsort()]
-    edge_feature = temp_edge_2.astype(np.int)
-
-    # Writing Edge Feature Matrix
-    edge_header = ['cf:id', 'edge_type', 'prov:activity', 'prov:entity']
-    for item in edge_prov_type_labels:
-        edge_header.append(str(item))
-    edge_header_str = str(edge_header).strip('[]')
-    fmt = ",".join(["%s"] + ["%10.6e"] * (edge_feature.shape[1]-1))
-    edge_attr_file = OUTPUT_FOLDER + "/" + "edge_attr.csv"
-    np.savetxt(edge_attr_file, edge_feature, fmt = fmt, header= edge_header_str, comments='' )
-
-    # Create Edge Matrix by extracting 3rd and 4th coloumn (Src and Destination)
+# Create Edge Matrix by extracting 3rd and 4th coloumn (Src and Destination)
     src_array = trans_mat_list_edge_wo_na[:,3]
     dst_array = trans_mat_list_edge_wo_na[:,4]
     # Create a np array with size of src_array
@@ -404,6 +362,71 @@ def label_encode_edge():
     edge_file = OUTPUT_FOLDER + "/" + "edge_index.csv"
     np.savetxt(edge_file, edge_index, delimiter=",")
 
+    # edge_type, prov_type
+    # -> Transform both
+    # -> 2 sparse matrix
+    # -> Horizontally stack (concatenate) two sparse matrix
+    # -> save the final matrix in csv (save sparse matrix into csv)
+    # Tranforming edge_type from "used, WasGeneratedBy" etc to 0 to n - 1
+
+    # Deleting Stuff ()
+    trans_mat_list_edge_wo_na = np.delete(trans_mat_list_edge_wo_na, [0,3,4], 1)
+
+    
+    # One Hot code for edge_type (used, wasgeneratedby)
+    data_edge_type = trans_mat_list_edge_wo_na[:,0]
+    data_prov_type = trans_mat_list_edge_wo_na[:,1]
+
+    poss_value_edge_type = asarray([['used'], ['wasGeneratedBy'], ['wasInformedBy'], ['wasDerivedFrom'], ['wasAssociatedWith']] )
+    poss_value_prov_type = asarray([['unknown'], ['read'], ['read_ioctl'], ['write'], ['write_ioctl'], ['clone_mem'], ['msg_create'], ['socket_create'], ['socket_pair_create'], ['inode_create'], ['setuid'], ['setpgid'], ['getpgid'], ['sh_write'], ['memory_write'], ['bind'], ['connect'], ['connect_unix_stream'], ['listen'], ['accept'], ['open'], ['file_rcv'], ['file_lock'], ['file_sigio'], ['version_entity'], ['munmap'], ['shmdt'], ['link'], ['rename'], ['unlink'], ['symlink'], ['splice_in'], ['splice_out'], ['setattr'], ['setattr_inode'], ['accept_socket'], ['setxattr'], ['setxattr_inode'], ['removexattr'], ['removexattr_inode'], ['named'], ['addressed'], ['exec'], ['exec_task'], ['packet_content'], ['clone'], ['version_activity'], ['search'], ['getattr'], ['getxattr'], ['getxattr_inode'], ['listxattr'], ['read_link'], ['mmap_read'], ['mmap_exec'], ['mmap_write'], ['mmap_read_private'], ['mmap_exec_private'], ['mmap_write_private'], ['sh_read'], ['memory_read'], ['send'], ['send_packet'], ['send_unix'], ['send_msg'], ['send_msg_queue'], ['receive'], ['receive_packet'], ['receive_unix'], ['receive_msg'], ['receive_msg_queue'], ['perm_read'], ['perm_write'], ['perm_exec'], ['perm_append'], ['terminate_task'], ['terminate_proc'], ['free'], ['arg'], ['env'], ['log'], ['sh_attach_read'], ['sh_attach_write'], ['sh_create_read'], ['sh_create_write'], ['load_file'], ['ran_on'], ['load_unknown'], ['load_firmware'], ['load_firmware_prealloc_buffer'], ['load_module'], ['load_kexec_image'], ['load_kexec_initramfs'], ['load_policy'], ['load_certificate'], ['load_undefined'], ['ptrace_attach'], ['ptrace_read'], ['ptrace_attach_task'], ['ptrace_read_task'], ['ptrace_traceme'], ['derived_disc'], ['generated_disc'], ['used_disc'], ['informed_disc'], ['influenced_disc'], ['associated_disc']])
+    
+    print("Before Fitting Hot Encode Edge Function")
+    #creating a instace of One Hot Encoder
+    enc_edge_type = OneHotEncoder(sparse=True)
+    enc_prov_type = OneHotEncoder(sparse=True)
+    enc_edge_type.fit(poss_value_edge_type)
+    enc_prov_type.fit(poss_value_prov_type)
+
+    # Copying edge prov:type column from the trans_mat_list_edge_wo_na -- node matrix
+    
+
+    # Converting it into list of list (array)!
+    edge_type_list = []
+    for item in data_edge_type:
+        edge = [item]
+        edge_type_list.append(edge)
+    a_edge_type = np.array(edge_type_list)
+
+    prov_type_list = []
+    for item in data_prov_type:
+        prov = [item]
+        prov_type_list.append(prov)
+    a_prov_type = np.array(prov_type_list)
+
+    #Transform edge and prov type 
+
+    temp_edge = enc_edge_type.transform(a_edge_type)
+    temp_prov = enc_prov_type.transform(a_prov_type)
+
+    # adding more columns as we have same number of rows
+    temp_edge_2 = hstack((temp_edge, temp_prov), dtype=int)
+    temp_edge_3 = temp_edge_2.toarray()
+  
+    prov_type_labels = enc_prov_type.get_feature_names()
+    edge_type_labels = enc_edge_type.get_feature_names()
+
+    # Writing Edge Feature Matrix
+    edge_header = []
+    for item in edge_type_labels:
+        edge_header.append(str(item))
+    for item in prov_type_labels:
+        edge_header.append(str(item))
+    edge_header_str = str(edge_header).strip('[]')
+    fmt = ",".join(["%s"] + ["%10.6e"] * (temp_edge_3.shape[1]-1))
+    edge_attr_file = OUTPUT_FOLDER + "/" + "edge_attr.csv"
+    np.savetxt(edge_attr_file, temp_edge_3, fmt = fmt, header= edge_header_str, comments='' )
+
+    
     ## Put into CSV edge_index, trans_mat_list_edge_wo_na and trans_mat_list_node
 
     print("Finished Edge Hot Encoding")

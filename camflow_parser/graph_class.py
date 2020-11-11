@@ -125,7 +125,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     CONSOLE_ARGUMENTS = args
-    graph_dataset = MyOwnDataset("Hello")
+    graph_dataset = MyOwnDataset("Hello", transform=None, pre_transform=None)
     dataset = DataLoader(graph_dataset)
     print(graph_dataset.len())
     data = graph_dataset.get(0)
