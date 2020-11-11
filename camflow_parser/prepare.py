@@ -369,7 +369,7 @@ def label_encode_edge():
     # -> save the final matrix in csv (save sparse matrix into csv)
     # Tranforming edge_type from "used, WasGeneratedBy" etc to 0 to n - 1
 
-    # Deleting Stuff ()
+    # Deleting Stuff cf:id, prov:activity and prov:entity
     trans_mat_list_edge_wo_na = np.delete(trans_mat_list_edge_wo_na, [0,3,4], 1)
 
     
@@ -384,19 +384,20 @@ def label_encode_edge():
     #creating a instace of One Hot Encoder
     enc_edge_type = OneHotEncoder(sparse=True)
     enc_prov_type = OneHotEncoder(sparse=True)
+
+    # Fit the possible values of edge_type and prov_type into the One-Hot Encoder
     enc_edge_type.fit(poss_value_edge_type)
     enc_prov_type.fit(poss_value_prov_type)
 
-    # Copying edge prov:type column from the trans_mat_list_edge_wo_na -- node matrix
-    
-
     # Converting it into list of list (array)!
+    # For edge_type
     edge_type_list = []
     for item in data_edge_type:
         edge = [item]
         edge_type_list.append(edge)
     a_edge_type = np.array(edge_type_list)
 
+    # For prov_type
     prov_type_list = []
     for item in data_prov_type:
         prov = [item]
@@ -405,15 +406,19 @@ def label_encode_edge():
 
     #Transform edge and prov type 
 
+    # Below are sparse matrix
     temp_edge = enc_edge_type.transform(a_edge_type)
     temp_prov = enc_prov_type.transform(a_prov_type)
 
     # adding more columns as we have same number of rows
+    # Horizontal stacking both edge_type and prov_type
     temp_edge_2 = hstack((temp_edge, temp_prov))
     temp_edge_3 = temp_edge_2.toarray()
   
+    # Get the labels for edge_type and prov_type
+    edge_type_labels = enc_edge_type.get_feature_names()    
     prov_type_labels = enc_prov_type.get_feature_names()
-    edge_type_labels = enc_edge_type.get_feature_names()
+
 
     # Writing Edge Feature Matrix
     edge_header = []
