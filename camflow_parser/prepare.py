@@ -326,6 +326,7 @@ def label_encode_node():
     node_file = OUTPUT_FOLDER + "/" +  "node_feature_x.csv"
     #print(node_header_str)
     np.savetxt(node_file, node_feature, fmt = fmt, header= node_header_str, comments='' )
+    del node_feature
     print("Finish Label Encoding Nodes")
 
 
@@ -361,6 +362,7 @@ def label_encode_edge():
     edge_index = np.transpose(mat_edge_list)
     edge_file = OUTPUT_FOLDER + "/" + "edge_index.csv"
     np.savetxt(edge_file, edge_index, delimiter=",")
+    del edge_index
 
     # edge_type, prov_type
     # -> Transform both
@@ -430,9 +432,7 @@ def label_encode_edge():
     fmt = ",".join(["%s"] + ["%10.6e"] * (temp_edge_3.shape[1]-1))
     edge_attr_file = OUTPUT_FOLDER + "/" + "edge_attr.csv"
     np.savetxt(edge_attr_file, temp_edge_3, fmt = fmt, header= edge_header_str, comments='' )
-
-    
-    ## Put into CSV edge_index, trans_mat_list_edge_wo_na and trans_mat_list_node
+    del temp_edge, temp_prov, temp_edge_2, temp_edge_3 
 
     print("Finished Edge Hot Encoding")
 
