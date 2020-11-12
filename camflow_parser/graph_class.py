@@ -1,4 +1,4 @@
-import tarfile,glob,os
+import tarfile,glob,os,shutil
 import prepare
 import argparse
 import os.path as osp
@@ -51,8 +51,9 @@ class MyOwnDataset(Dataset):
                     tar_file_name = f.rstrip(".tar.gz")
 
                     file_name = TAR_LOCATION + "/" + f
+                    ext_path = TAR_EXTRACTION_LOCATION + "/" + tar_file_name
                     # Check if folder exits in TAR_EXTRACTION_LOCATION, if not, extract
-                    if not os.path.exists(TAR_EXTRACTION_LOCATION + "/" + tar_file_name):
+                    if not os.path.exists(ext_path):
                         tar = tarfile.open(file_name, 'r:gz')
                         tar.extractall(path=TAR_EXTRACTION_LOCATION)
                         tar.close()
@@ -92,6 +93,15 @@ class MyOwnDataset(Dataset):
                     data = None
                     data = Data(x=node_feature, edge_index=edge_index, edge_attr=edge_feature, y=y)
 
+                    #delete CSV files
+                    if os.path.exists(ext_path):
+                        shutil.rmtree(ext_path)
+
+                    if os.path.exists(csv_folder):
+                        shutil.rmtree(csv_folder)
+
+                    print("Csv files and extracted folder deleted ")
+
                 # for raw_path in self.raw_paths:
                 #     # Read data from `raw_path`.
                 #     data = Data(...)
@@ -112,9 +122,7 @@ class MyOwnDataset(Dataset):
         data = torch.load(osp.join(self.processed_dir, 'data_{}.pt'.format(idx)))
         return data
 
-
-              
-
+# Start of python script
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Convert CamFlow JSON to Unicorn edgelist')
