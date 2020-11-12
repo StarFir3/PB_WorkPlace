@@ -440,11 +440,15 @@ def process_file(input_file, output_folder, args):
     # A hack to run prepare.py from another module
     global CONSOLE_ARGUMENTS
     global OUTPUT_FOLDER
+    global list_edge
+    global list_node
     CONSOLE_ARGUMENTS = args
     OUTPUT_FOLDER = output_folder
     output_file = OUTPUT_FOLDER + "/" + "temp"
 
-
+    # Intitialise the list_node and list_edge as they were staying persistant during function calls
+    list_edge.clear()
+    list_node.clear()
     node_map = dict()
     parse_all_nodes(input_file, node_map)
     print("Finished Parsing Nodes")
