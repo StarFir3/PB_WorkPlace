@@ -43,6 +43,7 @@ class GCN(torch.nn.Module):
     def forward(self, x, edge_index, batch):
         # 1. Obtain node embeddings
         print(edge_index)
+        print(edge_index.shape)
         x = self.conv1(x, edge_index)
         x = x.relu()
         x = self.conv2(x, edge_index)
@@ -70,6 +71,7 @@ class MyOwnDataset(Dataset):
     @property
     def processed_file_names(self):
         processed_file = os.listdir("Hello/processed/")
+#        return ["Hello.pt"]
         return processed_file
 #        return None
 
@@ -105,13 +107,15 @@ class MyOwnDataset(Dataset):
 
                     # Create Edge Index by reading edge_index.csv
                     filename_edge_index = csv_folder + "/" + 'edge_index.csv'
-                    data_edge_index = genfromtxt(filename_edge_index, delimiter=',', skip_header = 1)
+                    data_edge_index = genfromtxt(filename_edge_index, delimiter=',')
                     edge_index = torch.tensor(data_edge_index, dtype = torch.long)
+                    print(edge_index.shape)
 
                     # Create Node Feature by reading node_feature_x.csv
                     filename_node_feature = csv_folder + "/" + 'node_feature_x.csv'
                     data_node_feature = genfromtxt(filename_node_feature, delimiter=',', skip_header = 1)
                     node_feature = torch.tensor(data_node_feature, dtype = torch.float)
+                    print(node_feature.shape)
 
                     # Create Edge Feature by reading edge_attr.csv
                     filename_edge_feature = csv_folder + "/" + 'edge_attr.csv'
@@ -163,12 +167,10 @@ class MyOwnDataset(Dataset):
 def train():
     global train_dataset
     # Defining the batch size to 1? As graphs are quite big and batching is not required?
-    data_batch = 1
     model.train()
 
     for data in train_dataset:  # Iterate in batches over the training dataset.
-#        out = model(data.x, data.edge_index, data.batch)  # Perform a single forward pass.
-        out = model(data.x, data.edge_index, data_batch)  # Perform a single forward pass.
+        out = model(data.x, data.edge_index, data.batch)  # Perform a single forward pass.
         loss = criterion(out, data.y)  # Compute the loss.
         loss.backward()  # Derive gradients.
         optimizer.step()  # Update parameters based on gradients.
@@ -195,16 +197,17 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     CONSOLE_ARGUMENTS = args
-    graph_dataset = MyOwnDataset("Hello", transform=None, pre_transform=None)
-    dataset = DataLoader(graph_dataset)
-    print(graph_dataset.len())
     
-    torch.manual_seed(12345)
+    graph_dataset = MyOwnDataset("Hello", transform=None, pre_transform=None)
+    print("Length of the dataset is " + str(graph_dataset.len()))
     graph_dataset = graph_dataset.shuffle()
-
     train_dataset = graph_dataset[:100]
     test_dataset = graph_dataset[100:]
-
+    
+    torch.manual_seed(12345)
+    
+    train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
     #print(f'Number of training graphs: {len(train_dataset)}')
     #print(f'Number of test graphs: {len(test_dataset)}')
@@ -217,8 +220,8 @@ if __name__ == "__main__":
 
     for epoch in range(1, 201):
         train()
-        train_acc = test(train_dataset)
-        test_acc = test(test_dataset)
+        train_acc = test(train_loader)
+        test_acc = test(test_loader)
         print(f'Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}')
 
 
