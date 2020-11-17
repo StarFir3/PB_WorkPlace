@@ -16,6 +16,10 @@ from torch_geometric.datasets import Planetoid
 import torch_geometric.transforms as T
 from torch_geometric.nn import GCNConv, GNNExplainer
 from torch_geometric.utils.convert import to_networkx
+
+from torch_geometric.nn import global_mean_pool
+
+
 # make argparse arguments global
 CONSOLE_ARGUMENTS = None
 
@@ -23,6 +27,37 @@ CONSOLE_ARGUMENTS = None
 TAR_LOCATION = "/home/priyanka/PB_WorkPlace/prov_data_tar"
 TAR_EXTRACTION_LOCATION = "/home/priyanka/PB_WorkPlace/prov_data_main"
 CSV_FILES = "/home/priyanka/PB_WorkPlace/prov_data_csv"
+train_dataset = None
+test_dataset = None
+
+class GCN(torch.nn.Module):
+    def __init__(self, hidden_channels):
+        super(GCN, self).__init__()
+        torch.manual_seed(12345)
+        self.conv1 = GCNConv(graph_dataset.num_node_features, hidden_channels)
+        self.conv2 = GCNConv(hidden_channels, hidden_channels)
+        self.conv3 = GCNConv(hidden_channels, hidden_channels)
+        num_classes = 2
+        self.lin = Linear(hidden_channels, num_classes)
+
+    def forward(self, x, edge_index, batch):
+        # 1. Obtain node embeddings
+        print(edge_index)
+        x = self.conv1(x, edge_index)
+        x = x.relu()
+        x = self.conv2(x, edge_index)
+        x = x.relu()
+        x = self.conv3(x, edge_index)
+
+        # 2. Readout layer
+        x = global_mean_pool(x, batch)  # [batch_size, hidden_channels]
+
+        # 3. Apply a final classifier
+        x = F.dropout(x, p=0.5, training=self.training)
+        x = self.lin(x)
+
+        return x
+
 
 class MyOwnDataset(Dataset):
     def __init__(self, root, transform=None, pre_transform=None):
@@ -34,7 +69,8 @@ class MyOwnDataset(Dataset):
 
     @property
     def processed_file_names(self):
-        return ['data_0.pt', 'data_1.pt']
+        processed_file = os.listdir("Hello/processed/")
+        return processed_file
 #        return None
 
     def download(self):
@@ -124,6 +160,30 @@ class MyOwnDataset(Dataset):
 
 # Start of python script
 
+def train():
+    global train_dataset
+    # Defining the batch size to 1? As graphs are quite big and batching is not required?
+    data_batch = 1
+    model.train()
+
+    for data in train_dataset:  # Iterate in batches over the training dataset.
+#        out = model(data.x, data.edge_index, data.batch)  # Perform a single forward pass.
+        out = model(data.x, data.edge_index, data_batch)  # Perform a single forward pass.
+        loss = criterion(out, data.y)  # Compute the loss.
+        loss.backward()  # Derive gradients.
+        optimizer.step()  # Update parameters based on gradients.
+        optimizer.zero_grad()  # Clear gradients.
+
+def test(loader):
+     model.eval()
+
+     correct = 0
+     for data in loader:  # Iterate in batches over the training/test dataset.
+        out = model(data.x, data.edge_index, data.batch)  
+        pred = out.argmax(dim=1)  # Use the class with highest probability.
+        correct += int((pred == data.y).sum())  # Check against ground-truth labels.
+     return correct / len(loader.dataset)  # Derive ratio of correct predictions.
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Convert CamFlow JSON to Unicorn edgelist')
     parser.add_argument('-v', '--verbose', help='verbose logging (default is false)', action='store_true')
@@ -133,12 +193,33 @@ if __name__ == "__main__":
     parser.add_argument('-n', '--noencode', help='do not encode UUID in output (default is to encode)', action='store_true')
 
     args = parser.parse_args()
-
+    
     CONSOLE_ARGUMENTS = args
     graph_dataset = MyOwnDataset("Hello", transform=None, pre_transform=None)
     dataset = DataLoader(graph_dataset)
     print(graph_dataset.len())
-    data = graph_dataset.get(0)
+    
+    torch.manual_seed(12345)
+    graph_dataset = graph_dataset.shuffle()
+
+    train_dataset = graph_dataset[:100]
+    test_dataset = graph_dataset[100:]
+
+
+    #print(f'Number of training graphs: {len(train_dataset)}')
+    #print(f'Number of test graphs: {len(test_dataset)}')
+
+
+    model = GCN(hidden_channels=64)
+    print(model)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    criterion = torch.nn.CrossEntropyLoss()
+
+    for epoch in range(1, 201):
+        train()
+        train_acc = test(train_dataset)
+        test_acc = test(test_dataset)
+        print(f'Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}')
 
 
 
