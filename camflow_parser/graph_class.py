@@ -30,12 +30,14 @@ TAR_EXTRACTION_LOCATION = "/home/priyanka/PB_WorkPlace/prov_data_main"
 CSV_FILES = "/home/priyanka/PB_WorkPlace/prov_data_csv"
 train_dataset = None
 test_dataset = None
+num_node_features = 0
 
 class GCN(torch.nn.Module):
     def __init__(self, hidden_channels):
         super(GCN, self).__init__()
         torch.manual_seed(12345)
-        self.conv1 = GCNConv(graph_dataset.num_node_features, hidden_channels)
+#        self.conv1 = GCNConv(graph_dataset.num_node_features, hidden_channels)
+        self.conv1 = GCNConv(num_node_features, hidden_channels)
         self.conv2 = GCNConv(hidden_channels, hidden_channels)
         self.conv3 = GCNConv(hidden_channels, hidden_channels)
         num_classes = 2
@@ -201,6 +203,7 @@ if __name__ == "__main__":
     
     graph_dataset = MyOwnDataset("Hello", transform=None, pre_transform=None)
     print("Length of the dataset is " + str(graph_dataset.len()))
+    num_node_features = graph_dataset.num_node_features
 
     # Counters to track the number of attack graph and normal graph
     counter_train_attack = 0
@@ -242,7 +245,10 @@ if __name__ == "__main__":
 
     train_loader = DataLoader(data_train_list, batch_size=1, shuffle=True)
     test_loader = DataLoader(data_test_list, batch_size=1, shuffle=False)
-
+    # To save memory delete graph_dataset
+    del graph_dataset
+    del data_test_list
+    del data_train_list
 
     #graph_dataset = graph_dataset.shuffle()
   
