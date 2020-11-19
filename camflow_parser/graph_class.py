@@ -1,5 +1,6 @@
 import tarfile,glob,os,shutil
 import prepare
+import random
 import argparse
 import os.path as osp
 import torch
@@ -42,8 +43,6 @@ class GCN(torch.nn.Module):
 
     def forward(self, x, edge_index, batch):
         # 1. Obtain node embeddings
-        print(edge_index)
-        print(edge_index.shape)
         x = self.conv1(x, edge_index)
         x = x.relu()
         x = self.conv2(x, edge_index)
@@ -165,11 +164,11 @@ class MyOwnDataset(Dataset):
 # Start of python script
 
 def train():
-    global train_dataset
+    global train_loader
     # Defining the batch size to 1? As graphs are quite big and batching is not required?
     model.train()
 
-    for data in train_dataset:  # Iterate in batches over the training dataset.
+    for data in train_loader:  # Iterate in batches over the training dataset.
         out = model(data.x, data.edge_index, data.batch)  # Perform a single forward pass.
         loss = criterion(out, data.y)  # Compute the loss.
         loss.backward()  # Derive gradients.
@@ -197,21 +196,64 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     CONSOLE_ARGUMENTS = args
+
+    torch.manual_seed(12345)
     
     graph_dataset = MyOwnDataset("Hello", transform=None, pre_transform=None)
     print("Length of the dataset is " + str(graph_dataset.len()))
-    graph_dataset = graph_dataset.shuffle()
-    train_dataset = graph_dataset[:100]
-    test_dataset = graph_dataset[100:]
+
+    # Counters to track the number of attack graph and normal graph
+    counter_train_attack = 0
+    counter_train_normal = 0
+    # List to store train and test Data object models
+    data_train_list = []
+    data_test_list = []
+
+    # Running a loop thru the graph dataset
+    for i in range(len(graph_dataset)):
+        # Get the data object model using get function
+        data = graph_dataset.get(i)
+              
+        # If (data.y) is True; It's an attack graph
+        if data.y:
+            # Hard-coded as of now, we have 25 attack graph and want to have 13 in train and 12 in test
+            # Filling the data_train_list and ensuring we only fill 13 (0-12)
+            if counter_train_attack < 13:   
+                data_train_list.append(data)
+                counter_train_attack += 1
+            # If we have filled 13 attack graph in train dataset, fill the rest in test
+            else:
+                data_test_list.append(data)
+                counter_train_attack += 1
+        # If (data.y) is False; It's an normal` graph
+        else:
+            if counter_train_normal < 87:
+                  data_train_list.append(data)
+                  counter_train_normal += 1
+            else:
+                data_test_list.append(data)
+                counter_train_normal += 1
+
+    print(len(data_train_list))
+    print(len(data_test_list))
+    # Shuffling to ensure randomness
+    random.shuffle(data_train_list)
+    random.shuffle(data_test_list)
+
+    train_loader = DataLoader(data_train_list, batch_size=1, shuffle=True)
+    test_loader = DataLoader(data_test_list, batch_size=1, shuffle=False)
+
+
+    #graph_dataset = graph_dataset.shuffle()
+  
+    #train_dataset = graph_dataset[:100]
+    #test_dataset = graph_dataset[100:]
     
-    torch.manual_seed(12345)
-    
-    train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+    #train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
+    #test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
     #print(f'Number of training graphs: {len(train_dataset)}')
     #print(f'Number of test graphs: {len(test_dataset)}')
-
 
     model = GCN(hidden_channels=64)
     print(model)
@@ -219,7 +261,9 @@ if __name__ == "__main__":
     criterion = torch.nn.CrossEntropyLoss()
 
     for epoch in range(1, 201):
+        print("Entering Train")
         train()
+        print("Entering Test")
         train_acc = test(train_loader)
         test_acc = test(test_loader)
         print(f'Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}')
