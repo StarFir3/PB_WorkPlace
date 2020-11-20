@@ -1,3 +1,5 @@
+import os
+import psutil
 import tarfile,glob,os,shutil
 import prepare
 import random
@@ -31,6 +33,9 @@ CSV_FILES = "/home/priyanka/PB_WorkPlace/prov_data_csv"
 train_dataset = None
 test_dataset = None
 num_node_features = 0
+data_train_list = []
+data_test_list = []
+
 
 class GCN(torch.nn.Module):
     def __init__(self, hidden_channels):
@@ -166,26 +171,50 @@ class MyOwnDataset(Dataset):
 # Start of python script
 
 def train():
-    global train_loader
+    # data_train_list contain the indexes of the data object model
+    global data_train_list
+    global graph_dataset
+    temp_list=[]
+    
     # Defining the batch size to 1? As graphs are quite big and batching is not required?
     model.train()
 
-    for data in train_loader:  # Iterate in batches over the training dataset.
+    for idx in data_train_list:  # Iterate in batches over the training dataset.
+        # Get the data object model (data.pt)
+        temp_data = graph_dataset.get(idx)
+        temp_list.append(temp_data)
+        # Load that data object into data loader
+        data_loader = DataLoader(temp_list, batch_size=1, shuffle=False)
+        # Get a single batch from DataLoader without iterating
+        data = next(iter(data_loader))
+#       print("Training with " + str(idx))
         out = model(data.x, data.edge_index, data.batch)  # Perform a single forward pass.
         loss = criterion(out, data.y)  # Compute the loss.
         loss.backward()  # Derive gradients.
         optimizer.step()  # Update parameters based on gradients.
         optimizer.zero_grad()  # Clear gradients.
+        temp_list.clear()            
 
 def test(loader):
-     model.eval()
-
-     correct = 0
-     for data in loader:  # Iterate in batches over the training/test dataset.
+    temp_list = []
+    correct = 0
+    model.eval()
+    # Loader will contain the indexes of the train and test dataset
+    for idx in loader:
+        # Get the data object model (data.pt)
+        temp_data = graph_dataset.get(idx)
+        temp_list.append(temp_data)
+        # Load that data object into data loader
+        data_loader = DataLoader(temp_list, batch_size=1, shuffle=False)
+        # Get a single batch from DataLoader without iterating
+        data = next(iter(data_loader))
         out = model(data.x, data.edge_index, data.batch)  
         pred = out.argmax(dim=1)  # Use the class with highest probability.
         correct += int((pred == data.y).sum())  # Check against ground-truth labels.
-     return correct / len(loader.dataset)  # Derive ratio of correct predictions.
+        temp_list.clear()
+    #return correct / len(loader.dataset)  # Derive ratio of correct predictions.
+    return correct / len(loader)  # Derive ratio of correct predictions.
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Convert CamFlow JSON to Unicorn edgelist')
@@ -209,69 +238,50 @@ if __name__ == "__main__":
     counter_train_attack = 0
     counter_train_normal = 0
     # List to store train and test Data object models
-    data_train_list = []
-    data_test_list = []
-
+    process = psutil.Process(os.getpid())
     # Running a loop thru the graph dataset
     for i in range(len(graph_dataset)):
         # Get the data object model using get function
         data = graph_dataset.get(i)
+#        print("Loading data:" + str(i) + " Memory: " + str(process.memory_info().rss/ (1000000000)))  # in bytes
               
         # If (data.y) is True; It's an attack graph
         if data.y:
             # Hard-coded as of now, we have 25 attack graph and want to have 13 in train and 12 in test
             # Filling the data_train_list and ensuring we only fill 13 (0-12)
             if counter_train_attack < 13:   
-                data_train_list.append(data)
+                #add index of the data object model
+                data_train_list.append(i)
                 counter_train_attack += 1
             # If we have filled 13 attack graph in train dataset, fill the rest in test
             else:
-                data_test_list.append(data)
+                data_test_list.append(i)
                 counter_train_attack += 1
         # If (data.y) is False; It's an normal` graph
         else:
             if counter_train_normal < 87:
-                  data_train_list.append(data)
+                  data_train_list.append(i)
                   counter_train_normal += 1
             else:
-                data_test_list.append(data)
+                data_test_list.append(i)
                 counter_train_normal += 1
 
-    print(len(data_train_list))
-    print(len(data_test_list))
     # Shuffling to ensure randomness
+
     random.shuffle(data_train_list)
     random.shuffle(data_test_list)
-
-    train_loader = DataLoader(data_train_list, batch_size=1, shuffle=True)
-    test_loader = DataLoader(data_test_list, batch_size=1, shuffle=False)
-    # To save memory delete graph_dataset
-    del graph_dataset
-    del data_test_list
-    del data_train_list
-
-    #graph_dataset = graph_dataset.shuffle()
-  
-    #train_dataset = graph_dataset[:100]
-    #test_dataset = graph_dataset[100:]
     
-    #train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
-    #test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
-
-    #print(f'Number of training graphs: {len(train_dataset)}')
-    #print(f'Number of test graphs: {len(test_dataset)}')
-
     model = GCN(hidden_channels=64)
     print(model)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
     criterion = torch.nn.CrossEntropyLoss()
 
     for epoch in range(1, 201):
-        print("Entering Train")
+#        print("Training Initiated")
         train()
-        print("Entering Test")
-        train_acc = test(train_loader)
-        test_acc = test(test_loader)
+#        print("Testing Initiated")
+        train_acc = test(data_train_list)
+        test_acc = test(data_test_list)
         print(f'Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}')
 
 
