@@ -24,6 +24,8 @@ CONSOLE_ARGUMENTS = None
 OUTPUT_FOLDER = ""
 list_node = []
 list_edge = []
+cnt_edges_wo_nodes_eg = 0
+cnt_edges_wo_nodes_fn = 0
 
 # labe encoder for base64
 le_base64 = preprocessing.LabelEncoder()
@@ -69,9 +71,12 @@ def edgegen(edge, edge_type, node_map):
     hash type information and flags. @edge is the CamFlow
     edge data, parsed as a dictionary. This function returns
     a single hashed integer value of the edge."""
+    global cnt_edges_wo_nodes_eg
     l = list()
+    # Get the src_id and dst_id for edge_type
+    src_id, dst_id = get_src_dst_id(edge_type)
     #list_edge_feature = ['cf:id', 'prov:type', 'cf:boot_id', 'cf:machine_id', 'cf:date', 'cf:jiffies', 'prov:label', 'cf:allowed', 'prov:activity', 'prov:entity', 'cf:offset']
-    list_edge_feature = ['cf:id', 'prov:type', 'prov:activity', 'prov:entity']
+    list_edge_feature = ['cf:id', 'prov:type', src_id, dst_id]
     assert(edge["prov:type"])               # CamFlow edge must contain "prov:type" field
     #l.append(edge["prov:type"])
     for feature in list_edge_feature:
@@ -82,14 +87,15 @@ def edgegen(edge, edge_type, node_map):
     
     l.insert(1, edge_type)
 
-    if 'prov:activity' in edge and 'prov:entity' in edge:
-        srcUUID = edge["prov:entity"]
-        dstUUID = edge["prov:activity"]
+    if src_id in edge and dst_id in edge:
+        srcUUID = edge[src_id]
+        dstUUID = edge[dst_id]
         # both source and destination node must
         # exist in @node_map; if not, we will
         # have to skip the edge. Log this issue
         # if verbose is set.
         if srcUUID not in node_map or dstUUID not in node_map:
+            cnt_edges_wo_nodes_eg = cnt_edges_wo_nodes_eg + 1
             pass
         else:
             list_edge.append(l)
@@ -146,6 +152,27 @@ def parse_all_nodes(filename, node_map):
     f.close()
     pb.close()
 
+def get_src_dst_id(var):
+    #possible valuse for var ["used", "wasGeneratedBy", "wasInformedBy", "wasDerivedFrom", "wasAssociatedWith"}
+    if var == "used":
+        src = "prov:entity"
+        dst = "prov:activity"
+    elif var == "wasGeneratedBy":
+        src = "prov:activity"
+        dst = "prov:entity"
+    elif var == "wasInformedBy":
+        src = "prov:informant"
+        dst = "prov:informed"
+    elif var == "wasDerivedFrom":
+        src = "prov:usedEntity"
+        dst = "prov:generatedEntity"
+    elif var == "wasAssociatedWith":
+        src = "prov:agent"
+        dst = "prov:activity"
+
+    return src,dst
+
+
 
 def parse_all_edges(inputfile, outputfile, node_map, noencode):
     """Parse all edges (including their timestamp) from CamFlow data file @inputfile
@@ -158,7 +185,9 @@ def parse_all_edges(inputfile, outputfile, node_map, noencode):
         <source_node_id> \t <destination_node_id> \t <hashed_source_type>:<hashed_destination_type>:<hashed_edge_type>:<edge_logical_timestamp>
     If -s is set, each line would look like:
         <source_node_id> \t <destination_node_id> \t <hashed_source_type>:<hashed_destination_type>:<hashed_edge_type>:<edge_logical_timestamp>:<timestamp_stats>"""
+    global cnt_edges_wo_nodes_fn
     total_edges = 0
+
     smallest_timestamp = None
     # scan through the entire file to find the smallest timestamp from all the edges.
     # this step is only needed if we need to add some statistical information.
@@ -175,6 +204,10 @@ def parse_all_edges(inputfile, outputfile, node_map, noencode):
             json_object = json.loads(line)            
             # var takes the value of "used", "wasGeneratedBy", "wasInformedBy", "wasDerivedFrom", "wasAssociatedWith"
             for var in edge_possible_value:
+                # Edge information can be stored in different variable as per the entity_type: used, wasGeneratedBy,wasDerviedFrom
+                # For example; If entity_type is used, src_node and dst_node is stored in `prov_entity` and `prov_activity`
+                #              If entity_type is wasDerivedFrom, it is stored in `prov:usedEntity` and `prov:generatedEntity`
+                src_id, dst_id = get_src_dst_id(var)
                 if var in json_object:
                     var_json_object = json_object[var]
                     for uid in var_json_object:
@@ -197,27 +230,28 @@ def parse_all_edges(inputfile, outputfile, node_map, noencode):
                             continue
                         else:
                             timestamp = var_json_object[uid]["cf:id"]
-                        if "prov:entity" not in var_json_object[uid]:
+                        if src_id not in var_json_object[uid]:
                             # an edge's source node must exist;
                             # if not, we will have to skip the
                             # edge. Log this issue if verbose is set.
                             if CONSOLE_ARGUMENTS.verbose:
                                 logging.debug("edge (" + var + "/{}) record without source UUID: {}".format(var[uid]["prov:type"], uid))
                             continue
-                        if "prov:activity" not in var_json_object[uid]:
+                        if dst_id not in var_json_object[uid]:
                             # an edge's destination node must exist;
                             # if not, we will have to skip the edge.
                             # Log this issue if verbose is set.
                             if CONSOLE_ARGUMENTS.verbose:
                                 logging.debug("edge (" + var + "/{}) record without destination UUID: {}".format(var[uid]["prov:type"], uid))
                             continue
-                        srcUUID = var_json_object[uid]["prov:entity"]
-                        dstUUID = var_json_object[uid]["prov:activity"]
+                        srcUUID = var_json_object[uid][src_id]
+                        dstUUID = var_json_object[uid][dst_id]
                         # both source and destination node must
                         # exist in @node_map; if not, we will
                         # have to skip the edge. Log this issue
                         # if verbose is set.
                         if srcUUID not in node_map:
+                            cnt_edges_wo_nodes_fn = cnt_edges_wo_nodes_fn + 1
                             if CONSOLE_ARGUMENTS.verbose:
                                 logging.debug("edge (" + var + "/{}) record with an unseen srcUUID: {}".format(var[uid]["prov:type"], uid))
                             continue
@@ -440,6 +474,8 @@ def process_file(input_file, output_folder, args):
     global OUTPUT_FOLDER
     global list_edge
     global list_node
+    global cnt_edges_wo_nodes_eg
+    global cnt_edges_wo_nodes_fn
     CONSOLE_ARGUMENTS = args
     OUTPUT_FOLDER = output_folder
     output_file = OUTPUT_FOLDER + "/" + "temp"
@@ -452,6 +488,8 @@ def process_file(input_file, output_folder, args):
     print("Finished Parsing Nodes")
     total_edges = parse_all_edges(input_file, output_file, node_map, CONSOLE_ARGUMENTS.noencode)
     print("Finished Parsing Edges")
+    print("Number of edges wo src/dst noticed in eg:" + str(cnt_edges_wo_nodes_eg))
+    print("Number of edges wo src/dst noticed in fn:" + str(cnt_edges_wo_nodes_fn))
     label_encode_node()
     label_encode_edge()
 
