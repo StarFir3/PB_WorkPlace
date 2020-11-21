@@ -76,8 +76,11 @@ class MyOwnDataset(Dataset):
 
     @property
     def processed_file_names(self):
-        processed_file = os.listdir("Hello/processed/")
-#        return ["Hello.pt"]
+        if os.path.exists("Hello/processed/"):
+            processed_file = os.listdir("Hello/processed/")
+        else:
+            processed_file = ["Hello.pt"]
+#           return ["Hello.pt"]
         return processed_file
 #        return None
 
@@ -115,13 +118,11 @@ class MyOwnDataset(Dataset):
                     filename_edge_index = csv_folder + "/" + 'edge_index.csv'
                     data_edge_index = genfromtxt(filename_edge_index, delimiter=',')
                     edge_index = torch.tensor(data_edge_index, dtype = torch.long)
-                    print(edge_index.shape)
 
                     # Create Node Feature by reading node_feature_x.csv
                     filename_node_feature = csv_folder + "/" + 'node_feature_x.csv'
                     data_node_feature = genfromtxt(filename_node_feature, delimiter=',', skip_header = 1)
                     node_feature = torch.tensor(data_node_feature, dtype = torch.float)
-                    print(node_feature.shape)
 
                     # Create Edge Feature by reading edge_attr.csv
                     filename_edge_feature = csv_folder + "/" + 'edge_attr.csv'
@@ -239,10 +240,15 @@ if __name__ == "__main__":
     counter_train_normal = 0
     # List to store train and test Data object models
     process = psutil.Process(os.getpid())
+    num_graphs = len(graph_dataset)
+    total_num_nodes = 0
+    total_num_edges = 0
     # Running a loop thru the graph dataset
-    for i in range(len(graph_dataset)):
+    for i in range(num_graphs):
         # Get the data object model using get function
         data = graph_dataset.get(i)
+        total_num_nodes = total_num_nodes + data.num_nodes
+        total_num_edges = total_num_edges + data.num_edges
 #        print("Loading data:" + str(i) + " Memory: " + str(process.memory_info().rss/ (1000000000)))  # in bytes
               
         # If (data.y) is True; It's an attack graph
@@ -265,6 +271,12 @@ if __name__ == "__main__":
             else:
                 data_test_list.append(i)
                 counter_train_normal += 1
+
+    avg_num_nodes = total_num_nodes/num_graphs
+    avg_num_edges = total_num_edges/num_graphs
+    print("Average numer of Nodes: " + str(avg_num_nodes))
+    print("Average numer of Edges: " + str(avg_num_edges))
+    print("Total number of Graphs: " + str(num_graphs))
 
     # Shuffling to ensure randomness
 
