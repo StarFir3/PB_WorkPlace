@@ -1,0 +1,7 @@
+Event_Name,Process_Name,File_Path
+Process/Start,ccsetup574,"""C:\Users\User\Downloads\ccsetup574.exe"" /S"
+Process/Stop,dllhost,C:\Windows\system32\DllHost.exe /Processid:{E10F6C3A-F1AE-4ADC-AA9D-2FE65525666E}
+Process/Stop,dllhost,C:\Windows\system32\DllHost.exe /Processid:{E10F6C3A-F1AE-4ADC-AA9D-2FE65525666E}
+Process/Start,CCleaner,"""C:\Program Files\CCleaner\CCleaner.exe"" /createSkipUAC "
+Process/Start,CCUpdate,"""C:\Program Files\CCleaner\CCUpdate.exe"" /reg"
+Process/Stop,ccsetup574,"""C:\Users\User\Downloads\ccsetup574.exe"" /S"
