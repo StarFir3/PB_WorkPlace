@@ -25,7 +25,7 @@ def convert_FileIO_to_AdjacencyList():
         lst_al_file.append(row_csv)
         lst_temp.clear()
 
-    with open("AL_FileIO.csv", 'w', newline="") as f:
+    with open("Adjacency_FileIO.csv", 'w', newline="") as f:
     #    fields  = ['Source', 'Dest']
         write = csv.writer(f)
     #    write.writerow(fields) 
