@@ -5,7 +5,7 @@ import csv
 
 
 def convert_FileIO_to_AdjacencyList():
-    df = pd.read_csv(r'C:\Users\u_priyanka.badva\Desktop\Perfview\FileIO.csv')
+    df = pd.read_csv(r'FileIO.csv')
     dst = df['File_Path']
     uniq_dst = dst.unique()
     lst_al_file =[]
