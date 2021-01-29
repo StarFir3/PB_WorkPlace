@@ -1,0 +1,7 @@
+Event_Name,Process_Name,File_Path,Time,Process_Id,Parent_Id,exe,PID
+Process/Start,ccsetup574,"""C:\\Users\\User\\Downloads\\ccsetup574\.exe""\ /S",292.5975,"3,432","3,568",ccsetup574.exe,3432
+Process/Stop,dllhost,C:\\Windows\\system32\\DllHost\.exe\ /Processid:\{E10F6C3A\-F1AE\-4ADC\-AA9D\-2FE65525666E\},4839.5395,216,584,dllhost.exe,216
+Process/Stop,dllhost,C:\\Windows\\system32\\DllHost\.exe\ /Processid:\{E10F6C3A\-F1AE\-4ADC\-AA9D\-2FE65525666E\},4863.7442,"3,764",584,dllhost.exe,3764
+Process/Start,CCleaner,"""C:\\Program\ Files\\CCleaner\\CCleaner\.exe""\ /createSkipUAC\ ",5598.1519,"2,004","3,432",CCleaner.exe,2004
+Process/Start,CCUpdate,"""C:\\Program\ Files\\CCleaner\\CCUpdate\.exe""\ /reg",5636.2341,"3,468","3,432",CCUpdate.exe,3468
+Process/Stop,ccsetup574,"""C:\\Users\\User\\Downloads\\ccsetup574\.exe""\ /S",5664.0103,"3,432","3,568",ccsetup574.exe,3432
