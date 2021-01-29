@@ -16,26 +16,29 @@ for item in titles:
     event = item.get('EventName')
     
     
-    if event == 'FileIO/Create' or event == 'FileIO/Read'   or event == 'FileIO/Write' or event == 'FileIO/Delete':        
+    if event == 'FileIO/Create' or event == 'FileIO/Read'   or event == 'FileIO/Write' or event == 'FileIO/Delete' or event == 'FileIO/Create':        
         time = item.get('MSec')
         pname = item.get('PName')
         filename = item.get('FileName')
+        pid= item.get('PID')
         filename = re.escape(filename)
-        row = (event, pname, filename, time)
+        row = (event, pname, filename, time, pid)
         fileio.append(row)
         #fileio = sorted(set(fileio))
         
-    elif event == 'UdpIp/Send' or event == 'UdpIp/Recv' or event == 'TcpIp/Send' or event == 'TcpIp/Recv':
+    elif event == 'TcpIp/Send' or event == 'TcpIp/Recv':
         saddr = item.get('saddr')
         daddr = item.get('daddr')
         sport = item.get('sport')
         dport = item.get('dport')
         pname = item.get('PName')
         time = item.get('MSec')
-        row = (event, pname, saddr, sport, daddr, dport, time )
+        pid= item.get('PID')
+        row = (event,pname, saddr, sport, daddr, dport, time, pid )
         network.append(row)
         #network = sorted(set(network))
     
+    #elif event == 'Process/Start':
     elif event == 'Process/Start' or event == 'Process/Stop':
         cmdline = item.get('CommandLine')
         cmdline = re.escape(cmdline)
@@ -45,25 +48,26 @@ for item in titles:
         parent_id = item.get('ParentID')
         time = item.get('MSec')
         exe = item.get('ImageFileName')
-        row = (event, pname, cmdline, time, process_id, parent_id, exe)
+        pid= item.get('PID')
+        row = (event, pname, cmdline, time, process_id, parent_id, exe, pid)
         process.append(row)
         #process = sorted(set(process))
 
-with open("FileIO.csv", 'w', newline="") as f:
-    fields  = ['Event_Name', 'Process_Name', 'File_Path', 'Time']
+with open("csv_files/FileIO.csv", 'w', newline="") as f:
+    fields  = ['Event_Name', 'Process_Name', 'File_Path', 'Time','PID']
     write = csv.writer(f)
     write.writerow(fields) 
     write.writerows(fileio)
     
 
-with open("Network.csv", 'w', newline="") as f:
-    fields  = ['Event_Name', 'Process_Name', 'Src_Addr', 'Src_Port', 'Dst_Addr', 'Dst_Port', 'Time' ]
+with open("csv_files/Network.csv", 'w', newline="") as f:
+    fields  = ['Event_Name', 'Process_Name', 'Src_Addr', 'Src_Port', 'Dst_Addr', 'Dst_Port', 'Time', 'PID' ]
     write = csv.writer(f)   
     write.writerow(fields) 
     write.writerows(network)
     
-with open("Process.csv", 'w', newline="") as f:        
-    fields = ['Event_Name',  'Process_Name', 'File_Path', 'Time', 'Process_Id', 'Parent_Id', 'exe']
+with open("csv_files/Process.csv", 'w', newline="") as f:        
+    fields = ['Event_Name',  'Process_Name', 'File_Path', 'Time', 'Process_Id', 'Parent_Id', 'exe', 'PID']
     #fields = ['Event_Name',  'Process_Name', 'File_Path', ]
     write = csv.writer(f)   
     write.writerow(fields) 
