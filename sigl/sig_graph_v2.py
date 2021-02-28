@@ -1,3 +1,4 @@
+from os import replace
 import networkx as nx
 from networkx.algorithms.traversal.depth_first_search import dfs_edges
 from numpy.lib.utils import source
@@ -23,9 +24,10 @@ mapping = {}
 process_count = {}
 list_node = []
 
+
 def task_process():
     """Start with parsing processes"""
-    
+    global list_node
     t_1234 = False
     t_1234_P_X = False
     df = pd.read_csv(r'csv_files/Process.csv',  header = 0)
@@ -33,7 +35,7 @@ def task_process():
     df = df.iloc[::-1]
 
     #creating a dictonary with key:Process_Name and value: Counter (initial value 0). Use it to create acyclic graph 
-    u_pid = list(df.Process_Id.unique())    
+    u_pid = list(df.PID.unique())    
     for row in u_pid:
         process_count.update({row:0})
 
@@ -41,29 +43,29 @@ def task_process():
     row = df.iloc[0]
 
     # Start with the source
-    src_pid = row["Process_Id"]
+    src_pid = row["PID"]
     # Providing unique name  
-    src_upid = src_pid + "_P_" + str(process_count[src_pid])
+    src_upid = str(src_pid) + "_P_" + str(process_count[src_pid])
     # If parent_id and process_id node doesn't exists create it
     if not G.has_node(src_upid):
-        G.add_node(src_upid, FilePath = row["File_Path"], Time = row["Time"] )
+        G.add_node(src_upid,shape='box', FilePath = row["File_Path"], Time = row["Time"]  )
         process_count[src_pid] += 1
-        list_node.append(row["Process_Id"])
+        list_node.append(row["PID"])
 
-    dst = row["Parent_Id"]
+    dst = int(row["Parent_Id"].replace(",",""))
     if not G.has_node(dst):
-        list_node.append(row["Parent_Id"])
-        G.add_node(dst)
+        list_node.append(dst)
+        G.add_node(dst, shape='box')
 
     if G.has_node(src_upid) and G.has_node(dst):
         if row['Event_Name'] == 'Process/Start':
             # If Process_Start, the edge should be Parent_Id to Process_Id
-            src = row["Parent_Id"]
+            src = dst
             dst = src_upid
         elif row['Event_Name'] == 'Process/Stop':
             # If Process_Stop, the edge should be Process_Id to Parent_Id
             src = src_upid
-            dst = row["Parent_Id"]
+            dst = dst
 
         if not G.has_edge(src,dst):
             G.add_edge(src, dst, time=row["Time"], EventType=row["Event_Name"], xlabel= row["Event_Name"][8:])
@@ -76,22 +78,23 @@ def task_process():
     for row in islice(df.itertuples(index=False), 1, None):
 
         # Ensuring that current row is relevant
-        if row.Process_Id in list_node or row.Parent_Id in list_node:
+        Parent_Id = int(row.Parent_Id.replace(",",""))
+        if row.PID in list_node or Parent_Id in list_node:
 
         # If process_id node doesn't exists create it
-            src_pid = row.Process_Id 
-            src_upid = src_pid + "_P_" + str(process_count[src_pid])
+            src_pid = row.PID 
+            src_upid = str(src_pid) + "_P_" + str(process_count[src_pid])
 
             if not G.has_node(src_upid):
-                G.add_node(src_upid, FilePath = row.File_Path, Time = row.Time)
+                G.add_node(src_upid,shape='box', FilePath = row.File_Path, Time = row.Time)
                 process_count[src_pid] += 1
             # Now, the parent can exists either with 1234 or 1234_P_X
-            if G.has_node(row.Parent_Id):
+            if G.has_node(Parent_Id):
                 t_1234 = True
-                dst_upid = row.Parent_Id
+                dst_upid = Parent_Id
             else:
             # Creating 1234_P_X
-                temp = row.Parent_Id + "_P_" + str(process_count[row.Parent_Id] - 1)
+                temp = str(Parent_Id) + "_P_" + str(process_count[Parent_Id] - 1)
                 if G.has_node(temp):
                     t_1234_P_X = True
                     dst_upid = temp
@@ -100,7 +103,7 @@ def task_process():
             if t_1234 or t_1234_P_X:
                 pass
             else:
-                G.add_node(temp, Time = row.Time )     
+                G.add_node(temp,shape='box', Time = row.Time )     
 
             if row.Event_Name == 'Process/Start':
                 # If Process_Start, the edge should be Parent_Id to Process_Id
@@ -115,44 +118,72 @@ def task_process():
                 G.add_edge(src, dst, time=row.Time, EventType=row.Event_Name, xlabel= row.Event_Name[8:]) 
       
     #for items, rows in df.iterrows():
-    a = dict(zip(list(df.Process_Id), list(df.Process_Name)))
+    a = dict(zip(list(df.PID), list(df.Process_Name)))
     mapping.update(a)
     #print(mapping)
 
 def task_network():
+
+    n_1234 = False
+    n_1234_P_X = False
+    global list_node
+    tmp_pid_in_src = False
+
     df = pd.read_csv(r'csv_files/Network.csv',  header = 0)
     # Reversing the CSV
     df = df.iloc[::-1]
-    process_id = 0
-       
 
-    # Process other rows
     for row in df.itertuples(index=False):
 
-        #for key,value in mapping.items():
-        for key, value in mapping.items():
-            if value == row.Process_Name:
-                process_id = key
+        if row.PID in list_node or row.Dst_Addr in list_node:
 
-        #uniq_process_name = row.Process_Id + row.exe
-        # If process_id node doesn't exists create it
-        if G.has_node(process_id) or G.has_node(row.Dst_Addr):
-            G.add_node(process_id, Time = row.Time )
-            G.add_node(row.Dst_Addr, shape='diamond')
+            # Now, the PID(source node) can exists either with 1234 or 1234_N_X
+            if G.has_node(row.PID):
+                n_1234 = True
+                src_pid = row.PID
+            else:
+                tmp = str(row.PID) + "_P_" + str(process_count[row.PID] -1)
+                if G.has_node(tmp):
+                    n_1234_P_X = True
+                    src_upid = tmp
+
+            if n_1234 or n_1234_P_X:
+                pass
+            else:
+                process_count[src_upid] += 1
+                G.add_node(src_upid,shape='box', Time = row.Time)
+
+            if not G.has_node(row.Dst_Addr):
+                G.add_node(row.Dst_Addr, shape='diamond')
+
+            
 
             if row.Event_Name == 'TcpIp/Send':
             # If TcpIp/Send, the edge should be Src_Addr to Dst_Addr
-                src = process_id
+                src = src_upid
                 dst = row.Dst_Addr
+                tmp_pid_in_src = True
             elif row.Event_Name == 'TcpIp/Recv':
                 # If Process_Stop, the edge should be Process_Id to Parent_Id
                 src = row.Dst_Addr
-                dst = process_id
+                dst = src_upid
+                tmp_pid_in_src = False
+                
+
+            
 
 
-            if not G.has_edge(src,dst):
-                G.add_edge(src, dst, time=row.Time, EventType=row.Event_Name, xlabel= row.Event_Name[6:]) 
-    
+            if not (G.has_edge(src,dst) or G.has_edge(dst,src)):
+                G.add_edge(src, dst, key= row.Event_Name, time=row.Time, EventType=row.Event_Name, xlabel= row.Event_Name[6:]) 
+            else:
+                tmp = str(row.PID) + "_P_" + str(process_count[row.PID])
+                G.add_node(tmp,shape='box', Time = row.Time)
+                process_count[row.PID] += 1
+                if tmp_pid_in_src:
+                    src = tmp
+                else:
+                    dst = tmp
+                G.add_edge(src, dst, key= row.Event_Name, time=row.Time, EventType=row.Event_Name, xlabel= row.Event_Name[6:])
 
 
 def task_fileio():
@@ -203,7 +234,7 @@ def task_fileio():
 
 if __name__ == "__main__":
     task_process()
-    #task_network()
+    task_network()
     #task_fileio()
     H = nx.relabel_nodes(G, mapping, copy=True)
     nx.nx_agraph.write_dot(H, "output/hello2.dot")
