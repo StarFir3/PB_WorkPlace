@@ -126,15 +126,18 @@ def task_process():
 
 def task_network():
 
-    # Boolean variables to store process variant and network variant
-    # p_1234 = False
-    # p_1234_P_X = False
-    # n_1234 = False
-    # n_1234_N_X = False
-
     global list_node
     tmp_pid_in_src = False
     global process_count
+
+    # To remove duplicates version nodes we created a variable to match the value with the previous stage
+    pre_event = None
+    pre_ip = None
+    pre_pid = None
+
+    
+    second_row_pid = False
+    second_row_ip = False
 
     df = pd.read_csv(r'csv_files/Network.csv',  header = 0)
     # Reversing the CSV
@@ -152,46 +155,73 @@ def task_network():
         if row.PID in list_node or row.Dst_Addr in list_node:
             src_pid = row.PID
             dst_addr = row.Dst_Addr
+            evnt = row.Event_Name
 
-            # Create the Source Node (Process)    
-            src_upid = str(src_pid) + "_" + str(process_count[src_pid])
-            if not G.has_node(src_upid):
-                G.add_node(src_upid, shape='box')
-                process_count[src_pid] += 1
-
-            # Create the Destination Node (Socket)
-            dst_uaddr = dst_addr +  "_" + str(process_count[dst_addr])
-            if not G.has_node(dst_uaddr):
-                G.add_node(dst_uaddr, shape='diamond')
-                process_count[dst_addr] += 1
-
-            # Check the direction
-            if row.Event_Name == 'TcpIp/Send':
-            # If TcpIp/Send, the edge should be Src_Addr to Dst_Addr
-                src = src_upid
-                dst = dst_uaddr
-                tmp_pid_in_src = True
-            elif row.Event_Name == 'TcpIp/Recv':
-                # If Process_Stop, the edge should be Process_Id to Parent_Id
-                src = dst_uaddr
-                dst = src_upid
-                tmp_pid_in_src = False         
-
-            # Add the Edge
-            if not (G.has_edge(src,dst) or G.has_edge(dst,src)):
-                G.add_edge(src, dst, key= row.Event_Name, time=row.Time, EventType=row.Event_Name, xlabel= row.Event_Name[6:]) 
-
-            # Probably the below is not required    
+            # If previous row and current row are the same, ignore it
+            if pre_pid == src_pid and pre_ip == dst_addr and pre_event == evnt:
+                pass
             else:
-                tmp = str(row.PID) + "_" + str(process_count[row.PID])
-                G.add_node(tmp,shape='box', Time = row.Time)
-                process_count[row.PID] += 1
-                if tmp_pid_in_src:
-                    src = tmp
-                else:
-                    dst = tmp
-                G.add_edge(src, dst, key= row.Event_Name, time=row.Time, EventType=row.Event_Name, xlabel= row.Event_Name[6:])
 
+                if pre_pid == src_pid and second_row_pid == False:# and pre_event != evnt :
+                    src_upid = str(src_pid) + "_" + str(process_count[src_pid]- 1)
+                    second_row_pid = True
+                    pass
+                else:
+                    # Create the Source Node (Process)
+                    src_upid = str(src_pid) + "_" + str(process_count[src_pid]) 
+                    second_row_pid = False  
+                    
+                    if not G.has_node(src_upid):
+                        G.add_node(src_upid, shape='box')
+                        process_count[src_pid] += 1            
+
+               
+                # if pre_ip == dst_addr and second_row_ip == False:# and pre_event != evnt :
+                #     dst_uaddr = dst_addr +  "_" + str(process_count[dst_addr] - 1)
+                #     second_row_ip = True
+                #     pass
+                # else:
+                     # Create the Destination Node (Socket)
+                dst_uaddr = dst_addr +  "_" + str(process_count[dst_addr]) 
+                second_row_ip = False  
+            
+                if not G.has_node(dst_uaddr):
+                    G.add_node(dst_uaddr, shape='diamond')
+                    process_count[dst_addr] += 1
+                
+            
+                # Check the direction we need if send (src = pid, dst = ip), if receive ( src = ip, dst - pid)
+                if row.Event_Name == 'TcpIp/Send':
+                # If TcpIp/Send, the edge should be Src_Addr to Dst_Addr
+                    src = src_upid
+                    dst = dst_uaddr
+                    tmp_pid_in_src = True
+                elif row.Event_Name == 'TcpIp/Recv':
+                    # If Process_Stop, the edge should be Process_Id to Parent_Id
+                    src = dst_uaddr
+                    dst = src_upid
+                    tmp_pid_in_src = False 
+
+            
+            # Add the Edge
+                if not (G.has_edge(src,dst) or G.has_edge(dst,src)):
+                    G.add_edge(src, dst, key= row.Event_Name, time=row.Time, EventType=row.Event_Name, xlabel= row.Event_Name[6:]) 
+
+                # Probably the below is not required    
+                else:
+                    tmp = str(row.PID) + "_" + str(process_count[row.PID])
+                    G.add_node(tmp,shape='box', Time = row.Time)
+                    process_count[row.PID] += 1
+                    if tmp_pid_in_src:
+                        src = tmp
+                    else:
+                        dst = tmp
+                    G.add_edge(src, dst, key= row.Event_Name, time=row.Time, EventType=row.Event_Name, xlabel= row.Event_Name[6:])
+
+            #update the current values to match the value with the prvious one
+            pre_ip = row.Dst_Addr
+            pre_pid = row.PID
+            pre_event = row.Event_Name
     #program to connect the version nodes with dotted line, by using dictionary
     for key, value in process_count.items():
         #print(key,value)
@@ -200,8 +230,7 @@ def task_network():
                 node_x = str(key) + "_" + str(i)
                 node_y = str(key) + "_" + str(i - 1)
                 # print(node_x)
-                # print(node_y)
-        
+                # print(node_y)       
                 if G.has_node(node_x) and G.has_node(node_y):
                     G.add_edge(node_y, node_x, style='dotted')
 
@@ -252,7 +281,7 @@ def task_fileio():
 if __name__ == "__main__":
     task_process()
     task_network()
-    task_fileio()
+    # task_fileio()
     H = nx.relabel_nodes(G, mapping, copy=True)
     nx.nx_agraph.write_dot(H, "output/hello2.dot")
     nx.nx_agraph.pygraphviz_layout(H)
