@@ -23,122 +23,145 @@ G = nx.MultiDiGraph()
 mapping = {}
 process_count = {}
 list_node = []
+# Setting Threshold to 5 seconds
+threshold_time = 20
 
 
 def task_process():
     """Start with parsing processes"""
+
+    # list_node stores the relevant nodes to the graph
     global list_node
-    t_1234 = False
-    t_1234_P_X = False
+    tmp_edge_out = True
+    tmp_src_new_version = True
+
+
     df = pd.read_csv(r'csv_files/Process.csv',  header = 0)
-    # Reversing the CSV as we start from the last log.
-    df = df.iloc[::-1]
 
     #creating a dictonary with key:Process_Name and value: Counter (initial value 0). Use it to create acyclic graph 
     u_pid = list(df.PID.unique())    
-    for row in u_pid:
-        process_count.update({row:0})
-        #print(process_count)
+    for item in u_pid:
+        process_count.update({item:0})
 
     # Process first row to get the objects
     row = df.iloc[0]
 
     # Start with the source
-    src_pid = row["PID"]
+    pid = row["PID"]
+    ppid = int(row["Parent_Id"].replace(",",""))
+    process_count.update({ppid:0})
+
+    if row['Event_Name'] == 'Process/Start':
+        # If Process_Start, the edge should be Parent_Id to Process_Id
+        tmp_edge_out = True
+        tmp_src_new_version = False
+    elif row['Event_Name'] == 'Process/Stop':
+        # If Process_Stop, the edge should be Process_Id to Parent_Id
+        tmp_edge_out = False
+
+    if tmp_src_new_version == False:
+        u_src = str(pid) + "_" + str(process_count[pid] - 1)
+    else:
+        u_src = str(pid) + "_" + str(process_count[pid])
     # Providing unique name  
-    src_upid = str(src_pid) + "_" + str(process_count[src_pid])
-    # If parent_id and process_id node doesn't exists create it
-    if not G.has_node(src_upid):
-        G.add_node(src_upid,shape='box', FilePath = row["File_Path"], Time = row["Time"]  )
-        process_count[src_pid] += 1
-        list_node.append(row["PID"])
+    u_dst = str(ppid) + "_" + str(process_count[ppid])
 
-    dst = int(row["Parent_Id"].replace(",",""))
+    if tmp_edge_out:
+        src = u_src
+        dst = u_dst
+        id_src = pid
+        id_dst = ppid
+    else:
+        src = u_dst
+        dst = u_src
+        id_src = ppid
+        id_dst = pid                 
+            
+    if not G.has_node(src):
+        G.add_node(src,shape='box', FilePath = row["File_Path"], Time = row["Time"]  )
+        process_count[id_src] += 1
+        list_node.append(id_src)
+
     if not G.has_node(dst):
-        list_node.append(dst)
-        G.add_node(dst, shape='box')
+        G.add_node(dst, shape='box')        
+        list_node.append(id_dst)
 
-    if G.has_node(src_upid) and G.has_node(dst):
-        if row['Event_Name'] == 'Process/Start':
-            # If Process_Start, the edge should be Parent_Id to Process_Id
-            src = dst
-            dst = src_upid
-        elif row['Event_Name'] == 'Process/Stop':
-            # If Process_Stop, the edge should be Process_Id to Parent_Id
-            src = src_upid
-            dst = dst
 
-        if not G.has_edge(src,dst):
-            G.add_edge(src, dst, time=row["Time"], EventType=row["Event_Name"], xlabel= row["Event_Name"][8:])
+    if not G.has_edge(src,dst):
+        G.add_edge(src, dst, time=row["Time"], EventType=row["Event_Name"], xlabel= row["Event_Name"][8:])
 
     # Process other rows
 
     # Itertuples Refer https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.itertuples.html
     # Refer https://stackoverflow.com/questions/38596056/how-to-change-the-starting-index-of-iterrows/38596799
     # Skipping first row as already processed
-    for row in islice(df.itertuples(index=False), 1, None):
+    # for row in islice(df.itertuples(index=False), 1, None):
 
-        # Ensuring that current row is relevant
-        Parent_Id = int(row.Parent_Id.replace(",",""))
-        if row.PID in list_node or Parent_Id in list_node:
+    #     pid = row.PID
+    #     ppid = int(row.Parent_Id.replace(",",""))
 
-        # If process_id node doesn't exists create it
-            src_pid = row.PID 
-            src_upid = str(src_pid) + "_" + str(process_count[src_pid])
+    #     # Ensuring that current row is relevant
+    #     if pid in list_node or ppid in list_node:
 
-            if not G.has_node(src_upid):
-                G.add_node(src_upid,shape='box', FilePath = row.File_Path, Time = row.Time)
-                process_count[src_pid] += 1
-            # Now, the parent can exists either with 1234 or 1234_P_X
-            if G.has_node(Parent_Id):
-                t_1234 = True
-                dst_upid = Parent_Id
-            else:
-            # Creating 1234_P_X
-                temp = str(Parent_Id) + "_" + str(process_count[Parent_Id] - 1)
-                if G.has_node(temp):
-                    t_1234_P_X = True
-                    dst_upid = temp
+    #         u_src = str(pid) + "_" + str(process_count[pid])
+
+    #         if row.Event_Name == 'Process/Start':
+    #             # If Process_Start, the edge should be Parent_Id to Process_Id
+    #             temp_edge_out = True
+    #             # If a Process starts a process, add child process to the list_node as it is relevant
+    #             list_node.append(pid)
+    #         elif row.Event_Name == 'Process/Stop':
+    #             # If Process_Stop, the edge should be Process_Id to Parent_Id
+    #             temp_edge_out = False
             
-            # The node exists as either of them
-            if t_1234 or t_1234_P_X:
-                pass
-            else:
-                G.add_node(temp,shape='box', Time = row.Time )  
-                   
 
-            if row.Event_Name == 'Process/Start':
-                # If Process_Start, the edge should be Parent_Id to Process_Id
-                src = dst_upid
-                dst = src_upid
-            elif row.Event_Name == 'Process/Stop':
-                # If Process_Stop, the edge should be Process_Id to Parent_Id
-                src = src_upid
-                dst = dst_upid
+    #             # There's a edge coming out of PID, we don't need to create version of PID
+    #         if temp_edge_out == True:
+    #             u_src = str(pid) + "_" + str(process_count[pid] - 1)
+    #         else:
+    #             # Create the Source Node (Process)
+    #             u_src = str(pid) + "_" + str(process_count[pid]) 
+                
 
-            if not G.has_edge(src,dst):
-                G.add_edge(src, dst, time=row.Time, EventType=row.Event_Name, xlabel= row.Event_Name[8:]) 
+    #         u_dst = str(ppid) + "_" + str(process_count[ppid])
+            
+    #             # Set the direction right
+    #         if temp_edge_out:
+    #             src = u_src
+    #             dst = u_dst
+    #             id_src = pid
+    #             id_dst = ppid
+    #         else:
+    #             src = u_dst
+    #             dst = u_src
+    #             id_src = ppid
+    #             id_dst = pid                 
+
+    #         if not G.has_node(u_src):
+    #             G.add_node(u_src, shape='box')
+    #             process_count[id_src] += 1
+
+    #         if not G.has_node(u_dst):
+    #             G.add_node(u_dst, shape='box')
+    #             process_count[id_dst] += 1 
+
+    #         if not G.has_edge(src,dst):
+    #             G.add_edge(src, dst, time=row.Time, EventType=row.Event_Name, xlabel= row.Event_Name[8:]) 
+    #         temp_edge_out = False
                       
-    #for items, rows in df.iterrows():
-    a = dict(zip(list(df.PID), list(df.Process_Name)))
-    mapping.update(a)
-    #print(mapping)
 
 def task_network():
 
+    global process_count
     global list_node
     tmp_pid_in_src = False
-    global process_count
+
 
     # To remove duplicates version nodes we created a variable to match the value with the previous stage
     pre_event = None
     pre_ip = None
     pre_pid = None
-
     
-    second_row_pid = False
-    second_row_ip = False
-
     df = pd.read_csv(r'csv_files/Network.csv',  header = 0)
     # Reversing the CSV
     df = df.iloc[::-1]
@@ -164,14 +187,10 @@ def task_network():
 
                 # Check the direction we need if send (src = pid, dst = ip), if receive ( src = ip, dst - pid)
                 if row.Event_Name == 'TcpIp/Send':
-                # If TcpIp/Send, the edge should be Src_Addr to Dst_Addr
-                    # src = src_pid
-                    # dst = dst_addr
+                # If TcpIp/Send, the edge should be PID to Dst_Addr
                     tmp_pid_in_src = True
                 elif row.Event_Name == 'TcpIp/Recv':
-                    # If Process_Stop, the edge should be Process_Id to Parent_Id
-                    # src = dst_uaddr
-                    # dst = src_upid
+                # If TcpIp/Receive, the edge should be Dst_Addr to PID
                     tmp_ip_in_src = True
 
                 # There's a edge coming out of PID, we don't need to create version of PID
@@ -180,35 +199,34 @@ def task_network():
                 else:
                     # Create the Source Node (Process)
                     src_upid = str(src_pid) + "_" + str(process_count[src_pid]) 
-                    second_row_pid = False  
                     
-                    if not G.has_node(src_upid):
-                        G.add_node(src_upid, shape='box')
-                        process_count[src_pid] += 1                      
 
                 if tmp_ip_in_src == True:
+                    # Creating the IP node, if this IP is the first IP node in the graph
                     if process_count[dst_addr] == 0:
                         dst_uaddr = dst_addr +  "_" + str(process_count[dst_addr]) 
-                        if not G.has_node(dst_uaddr):
-                            G.add_node(dst_uaddr, shape='diamond')
-                            process_count[dst_addr] += 1 
                     else:
                         dst_uaddr = dst_addr +  "_" + str(process_count[dst_addr] - 1) 
                 else:
                     dst_uaddr = dst_addr +  "_" + str(process_count[dst_addr]) 
-                    second_row_ip = False  
-            
-                    if not G.has_node(dst_uaddr):
-                        G.add_node(dst_uaddr, shape='diamond')
-                        process_count[dst_addr] += 1   
 
+            
+                # Set the direction right
                 if tmp_pid_in_src:
                     src = src_upid
                     dst = dst_uaddr
                 else:
                     src = dst_uaddr
                     dst = src_upid                 
-                
+
+                if not G.has_node(src_upid):
+                    G.add_node(src_upid, shape='box')
+                    process_count[src_pid] += 1
+
+                if not G.has_node(dst_uaddr):
+                    G.add_node(dst_uaddr, shape='diamond')
+                    process_count[dst_addr] += 1 
+
             # Add the Edge
                 if not (G.has_edge(src,dst) or G.has_edge(dst,src)):
                     G.add_edge(src, dst, key= row.Event_Name, time=row.Time, EventType=row.Event_Name, xlabel= row.Event_Name[6:]) 
@@ -222,21 +240,20 @@ def task_network():
 
 def task_fileio():
 
-    tmp_pid_in_src = False
-    tmp_file_in_src = False
     global process_count
     global list_node
+    global threshold_time
+    tmp_pid_in_src = False
+    tmp_file_in_src = False
 
-    # To remove duplicates version nodes we created a variable to match the value with the previous stage
-    pre_event = None
-    dst_filepath = None
-    pre_pid = None
+    dic_time = {}
+
+    insert_row = False
 
     """Start with parsing fileio"""
-    df = pd.read_csv(r'csv_files/FileIO2.csv',  header = 0)
+    df = pd.read_csv(r'csv_files/FileIO.csv',  header = 0)
     # Reversing the CSV
     df = df.iloc[::-1]  
-    process_id = 0   
 
     # Creating counter for filepath
     u_filepath = list(df.File_Path.unique())    
@@ -247,21 +264,27 @@ def task_fileio():
     for row in u_pid:
         if not row in process_count:
             process_count.update({row:0})
-        #print(process_count)
-
-    
-
 
     # Process other rows
     for row in df.itertuples(index=False):
+        # If relevant
         if row.PID in list_node or row.File_Path in list_node:
             src_pid = row.PID
             dst_filepath = row.File_Path
             evnt = row.Event_Name
+            time = row.Time       
 
-            if pre_pid == src_pid and dst_filepath == dst_filepath and pre_event == evnt:
-                pass
+            file_event = str(dst_filepath) + '_' + str(evnt)
+            if not file_event in dic_time.keys():
+                dic_time.update({file_event:time})
+                insert_row = True
             else:
+                threshhold = time - dic_time[file_event]
+                if threshhold > threshold_time:
+                    insert_row = True
+            
+            if insert_row:
+            
                 if row.Event_Name == 'FileIO/Write':
                     tmp_pid_in_src = True
                 elif row.Event_Name == 'FileIO/Read':
@@ -280,32 +303,30 @@ def task_fileio():
                 else:
                     # Create the Source Node (Process)
                     src_upid = str(src_pid) + "_" + str(process_count[src_pid]) 
-                    second_row_pid = False
 
-                    if G.has_node(src_upid):
-                        G.add_node(src_upid, shape='box')
-                        process_count[src_pid] += 1   
 
                 if tmp_file_in_src == True:
                     if process_count[dst_filepath] == 0:
-                        dst_ufilepath = str(dst_filepath) +  "_" + str(process_count[dst_filepath]) 
-                        if not G.has_node(dst_ufilepath):
-                            G.add_node(dst_ufilepath)
-                            process_count[dst_filepath] += 1 
+                        dst_ufilepath = str(dst_filepath) +  "_" + str(process_count[dst_filepath])
+                    else:
+                        dst_ufilepath = str(dst_filepath) +  "_" + str(process_count[dst_filepath] - 1)
                 else:
-                    dst_ufilepath = str(dst_filepath) +  "_" + str(process_count[dst_filepath] - 1) 
-                    second_row_ip = False  
+                    dst_ufilepath = str(dst_filepath) +  "_" + str(process_count[dst_filepath]) 
             
-                    if not G.has_node(dst_ufilepath):
-                        G.add_node(dst_ufilepath)
-                        process_count[dst_filepath] += 1   
-
                 if tmp_pid_in_src:
                     src = src_upid
                     dst = dst_ufilepath
                 else:
                     src = dst_ufilepath
                     dst = src_upid 
+
+                if not G.has_node(dst_ufilepath):
+                    G.add_node(dst_ufilepath)
+                    process_count[dst_filepath] += 1 
+
+                if G.has_node(src_upid):
+                    G.add_node(src_upid, shape='box')
+                    process_count[src_pid] += 1   
 
                 # Add the Edge
                 if not (G.has_edge(src,dst) or G.has_edge(dst,src)):
@@ -317,8 +338,7 @@ def task_fileio():
 
             #update the current values to match the value with the prvious one
             dst_filepath = row.File_Path
-            pre_pid = row.PID
-            pre_event = row.Event_Name    
+            insert_row = False
 
 def dottedline():
     for key, value in process_count.items():
@@ -334,9 +354,13 @@ def dottedline():
 
 if __name__ == "__main__":
     task_process()
-    task_network()
-    task_fileio()
+#    task_network()
+#    task_fileio()
     dottedline()
+        #for items, rows in df.iterrows():
+    # a = dict(zip(list(df.PID), list(df.Process_Name)))
+    # mapping.update(a)
+    #print(mapping)
     H = nx.relabel_nodes(G, mapping, copy=True)
     nx.nx_agraph.write_dot(H, "output/hello2.dot")
     nx.nx_agraph.pygraphviz_layout(H)
