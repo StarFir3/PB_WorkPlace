@@ -1,7 +1,8 @@
-Event_Name,Process_Name,File_Path,Time,Process_Id,Parent_Id,exe,PID
-Process/Start,ccsetup574,"""C:\\Users\\User\\Downloads\\ccsetup574\.exe""\ /S",292.5975,"3,432","3,568",ccsetup574.exe,3432
-Process/Stop,dllhost,C:\\Windows\\system32\\DllHost\.exe\ /Processid:\{E10F6C3A\-F1AE\-4ADC\-AA9D\-2FE65525666E\},4839.5395,216,584,dllhost.exe,216
-Process/Stop,dllhost,C:\\Windows\\system32\\DllHost\.exe\ /Processid:\{E10F6C3A\-F1AE\-4ADC\-AA9D\-2FE65525666E\},4863.7442,"3,764",584,dllhost.exe,3764
-Process/Start,CCleaner,"""C:\\Program\ Files\\CCleaner\\CCleaner\.exe""\ /createSkipUAC\ ",5598.1519,"2,004","3,432",CCleaner.exe,2004
-Process/Start,CCUpdate,"""C:\\Program\ Files\\CCleaner\\CCUpdate\.exe""\ /reg",5636.2341,"3,468","3,432",CCUpdate.exe,3468
-Process/Stop,ccsetup574,"""C:\\Users\\User\\Downloads\\ccsetup574\.exe""\ /S",5664.0103,"3,432","3,568",ccsetup574.exe,3432
+Event_Name,Process_Name,File_Path,Time,Process_Id,Parent_Id,exe,PID,UniqueProcessKey
+Process/DCStart,PerfView,"""C:\\Users\\User\\Downloads\\PerfView\\PerfView\.exe""\ /RestartingToElevelate:run\ \ /MinSecForTrigger:0\ /KernelEvents:Default,FileIOInit\ /ClrEvents:None\ /NoGui\ /LogFile:""logfile\.txt""\ /NoView\ Run\ C:\\Users\\User\\Downloads\\ccsetup574\.exe\ /S",22.5988,"3,568","3,148",PerfView.exe,3568,0x85236030
+Process/Start,ccsetup574,"""C:\\Users\\User\\Downloads\\ccsetup574\.exe""\ /S",292.5975,"3,432","3,568",ccsetup574.exe,3432,0x84CF52A0
+Process/Start,CCleaner,"""C:\\Program\ Files\\CCleaner\\CCleaner\.exe""\ /createSkipUAC\ ",5598.1519,"2,004","3,432",CCleaner.exe,2004,0x84D37D20
+Process/Start,CCUpdate,"""C:\\Program\ Files\\CCleaner\\CCUpdate\.exe""\ /reg",5636.2341,"3,468","3,432",CCUpdate.exe,3468,0x85890030
+Process/Stop,ccsetup574,"""C:\\Users\\User\\Downloads\\ccsetup574\.exe""\ /S",5664.0103,"3,432","3,568",ccsetup574.exe,3432,0x84CF52A0
+Process/DCStop,CCleaner,"""C:\\Program\ Files\\CCleaner\\CCleaner\.exe""\ /createSkipUAC\ ",5830.4738,"2,004","3,432",CCleaner.exe,2004,0x84D37D20
+Process/DCStop,CCUpdate,"""C:\\Program\ Files\\CCleaner\\CCUpdate\.exe""\ /reg",5830.7408,"3,468","3,432",CCUpdate.exe,3468,0x85890030

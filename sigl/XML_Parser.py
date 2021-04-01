@@ -21,8 +21,10 @@ for item in titles:
         pname = item.get('PName')
         filename = item.get('FileName')
         pid= item.get('PID')
+        uid = item.get('FileKey')
         filename = re.escape(filename)
-        row = (event, pname, filename, time, pid)
+        fileobject = item.get('FileObject')
+        row = (event, pname, filename, time, pid, uid, fileobject)
         fileio.append(row)
         #fileio = sorted(set(fileio))
         
@@ -39,7 +41,7 @@ for item in titles:
         #network = sorted(set(network))
     
     #elif event == 'Process/Start':
-    elif event == 'Process/Start' or event == 'Process/Stop':
+    elif event == 'Process/Start' or event == 'Process/Stop' or event == 'Process/DCStart' or event == 'Process/DCStop':
         cmdline = item.get('CommandLine')
         cmdline = re.escape(cmdline)
         pname = item.get('PName')
@@ -49,12 +51,13 @@ for item in titles:
         time = item.get('MSec')
         exe = item.get('ImageFileName')
         pid= item.get('PID')
-        row = (event, pname, cmdline, time, process_id, parent_id, exe, pid)
+        uid = item.get('UniqueProcessKey')
+        row = (event, pname, cmdline, time, process_id, parent_id, exe, pid, uid)
         process.append(row)
         #process = sorted(set(process))
 
 with open("csv_files/FileIO.csv", 'w', newline="") as f:
-    fields  = ['Event_Name', 'Process_Name', 'File_Path', 'Time','PID']
+    fields  = ['Event_Name', 'Process_Name', 'File_Path', 'Time','PID', 'FileKey']
     write = csv.writer(f)
     write.writerow(fields) 
     write.writerows(fileio)
@@ -67,7 +70,7 @@ with open("csv_files/Network.csv", 'w', newline="") as f:
     write.writerows(network)
     
 with open("csv_files/Process.csv", 'w', newline="") as f:        
-    fields = ['Event_Name',  'Process_Name', 'File_Path', 'Time', 'Process_Id', 'Parent_Id', 'exe', 'PID']
+    fields = ['Event_Name',  'Process_Name', 'File_Path', 'Time', 'Process_Id', 'Parent_Id', 'exe', 'PID', 'UniqueProcessKey']
     #fields = ['Event_Name',  'Process_Name', 'File_Path', ]
     write = csv.writer(f)   
     write.writerow(fields) 
