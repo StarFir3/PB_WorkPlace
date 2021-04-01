@@ -27,12 +27,15 @@ process_count = {}
 lst_node = []
 list_dict_pc = []
 # Setting Threshold to 5 seconds
-threshold_time = 10000
+threshold_time_network = 10
+threshold_time_file = 10
 pid_mapping = {}
 pname_mapping = {}
 lst_df_data = []
-df_data = pd.DataFrame() 
-
+df_data = pd.DataFrame()
+dict_time = {}
+df_csv_process = pd.read_csv(r'csv_files/Process.csv',  header = 0)
+df_csv_network = pd.read_csv(r'csv_files/Network.csv',  header = 0)
 
 
 def get_relevant_process():
@@ -41,34 +44,35 @@ def get_relevant_process():
     # list_node stores the relevant nodes to the graph
     global lst_node
     global df_data
+    global df_csv_process
      
-    df_csv = pd.read_csv(r'csv_files/Process.csv',  header = 0)
+    
     # Get the last row index to retrieve the relevant object
-    row_idx = df_csv.last_valid_index()
+    row_idx = df_csv_process.last_valid_index()
 
     # A row can have two objects (src/dst) which is equal to process and it's parent (which is also a process)
     # A process can have multiple attributes: 
     # Start with the getting attributes UniqueProcessKey, pid, parent id, process name
-    pid_psk   = df_csv.at[row_idx, 'UniqueProcessKey']
-    pid_pid   = df_csv.at[row_idx, 'PID']
-    pid_pname = df_csv.at[row_idx, 'exe']
-    pid_ppid  = int(df_csv.at[row_idx, 'Parent_Id'].replace(",",""))
+    pid_psk   = df_csv_process.at[row_idx, 'UniqueProcessKey']
+    pid_pid   = df_csv_process.at[row_idx, 'PID']
+    pid_pname = df_csv_process.at[row_idx, 'exe']
+    pid_ppid  = int(df_csv_process.at[row_idx, 'Parent_Id'].replace(",",""))
     
     #  We need to find the UniqueProcessKey where parentid became pid. So first extracting the index of it.
-    row_idx_ppid = (df_csv.loc[(df_csv['PID'] ==  pid_ppid)]).index
+    row_idx_ppid = (df_csv_process.loc[(df_csv_process['PID'] ==  pid_ppid)]).index
 
     # Extracting values using at; Using [0] as there can be multiple enteries
-    ppid_psk   = df_csv.at[row_idx_ppid[0],'UniqueProcessKey']
+    ppid_psk   = df_csv_process.at[row_idx_ppid[0],'UniqueProcessKey']
     ppid_pid   = pid_ppid
-    ppid_pname = df_csv.at[row_idx_ppid[0],'exe']
-    ppid_ppid  = df_csv.at[row_idx_ppid[0],'Parent_Id']
+    ppid_pname = df_csv_process.at[row_idx_ppid[0],'exe']
+    ppid_ppid  = df_csv_process.at[row_idx_ppid[0],'Parent_Id']
     
     # Creating a dictionary with above extracted attributes with counter
-    temp_dict = {  "UniqueKey": pid_psk, "ID": pid_pid, "Name": pid_pname, "Type": "Process", "Count": 0}
+    temp_dict = {  "UniqueKey": pid_psk, "ID": pid_pid, "Name": pid_pname, "Type": "Process", "Count": 0, "PrevTime": 0.0}
     if temp_dict not in lst_df_data:
         lst_df_data.append(temp_dict)
   
-    temp_dict = { "UniqueKey": ppid_psk, "ID": ppid_pid, "Name": ppid_pname, "Type":"Process", "Count": 0}
+    temp_dict = { "UniqueKey": ppid_psk, "ID": ppid_pid, "Name": ppid_pname, "Type":"Process", "Count": 0, "PrevTime": 0.0}
     if temp_dict not in lst_df_data:
         lst_df_data.append(temp_dict)
 
@@ -80,33 +84,33 @@ def get_relevant_process():
 
     # Itertuples Refer https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.itertuples.html
     # Processing Rows
-    for row in df_csv.itertuples(index=False):
+    for row in df_csv_process.itertuples(index=False):
         pid_psk   = row.UniqueProcessKey
         pid_pid   = row.PID
         pid_ppid  = int(row.Parent_Id.replace(",",""))
         pid_pname = row.exe
 
-        row_idx_ppid = (df_csv.loc[(df_csv['PID'] ==  pid_ppid)]).index
+        row_idx_ppid = (df_csv_process.loc[(df_csv_process['PID'] ==  pid_ppid)]).index
         if row_idx_ppid.empty:
             # Do something
             ppid_pid = pid_ppid
             ppid_psk = "0xDEADBEEF"
         else:
         # Extracting values using at from df_csv; Using [0] as there can be multiple enteries
-            ppid_psk   = df_csv.at[row_idx_ppid[0],'UniqueProcessKey']
+            ppid_psk   = df_csv_process.at[row_idx_ppid[0],'UniqueProcessKey']
             ppid_pid   = pid_ppid
-            ppid_pname = df_csv.at[row_idx_ppid[0],'exe']
-            ppid_ppid  = df_csv.at[row_idx_ppid[0],'Parent_Id']        
+            ppid_pname = df_csv_process.at[row_idx_ppid[0],'exe']
+            ppid_ppid  = df_csv_process.at[row_idx_ppid[0],'Parent_Id']        
 
  
     #   # Ensuring that current row is relevant
         if pid_psk in lst_node or ppid_psk in lst_node:
 
-            temp_dict = {  "UniqueKey": pid_psk, "ID": pid_pid, "Name": pid_pname, "Type": "Process", "Count": 0}
+            temp_dict = {  "UniqueKey": pid_psk, "ID": pid_pid, "Name": pid_pname, "Type": "Process", "Count": 0, "PrevTime": 0.0}
             if temp_dict not in lst_df_data:
                 lst_df_data.append(temp_dict)
         
-            temp_dict = { "UniqueKey": ppid_psk, "ID": ppid_pid, "Name": ppid_pname, "Type":"Process", "Count": 0}
+            temp_dict = { "UniqueKey": ppid_psk, "ID": ppid_pid, "Name": ppid_pname, "Type":"Process", "Count": 0, "PrevTime": 0.0}
             if temp_dict not in lst_df_data:
                 lst_df_data.append(temp_dict)
 
@@ -202,34 +206,61 @@ def process_relevant_process():
             pid_nv = False
             ppid_nv = False
                       
+def get_relevant_network():
 
-def task_network():
-
-    global process_count
-    global list_node
-    insert_row = False
+    global lst_node
+    global df_data
+    global df_csv_process
+    global df_csv_network
     
-    df = pd.read_csv(r'csv_files/Network.csv',  header = 0)
-
-    # Creating counter for dst addr
-    u_daddr = list(df.Dst_Addr.unique())    
-    for row in u_daddr:
-        process_count.update({row:0}) 
-
     # Processing each row
-    for row in df.itertuples(index=False):
-        pid = row.PID
-        ip = row.Dst_Addr
+    for row in df_csv_network.itertuples(index=False):
+        pid  = row.PID
+        ip   = row.Dst_Addr
         evnt = row.Event_Name
         time = row.Time        
 
+        #  We need to find the UniqueKey of pid. So first extracting the index of it.
+        row_idx_pid = (df_csv_process.loc[(df_csv_process['PID'] ==  pid)]).index
+
+    # Extracting values using at; Using [0] as there can be multiple enteries
+        pid_psk   = df_csv_process.at[row_idx_pid[0],'UniqueProcessKey']
+
         # The row is relevant is the row.PID is the list_node
-        if pid in list_node or ip in list_node:
+        if pid_psk in lst_node or ip in lst_node:
+
+            temp_dict = {  "UniqueKey": ip, "ID": ip, "Name": ip, "Type": "Network", "Count": 0, "PrevTime": 0.0}
+            if temp_dict not in lst_df_data:
+                lst_df_data.append(temp_dict)
+
+def process_relevant_network():
+
+    global lst_node
+    global df_data
+    global dict_time
+    global df_csv_process
+    global df_csv_network
+    
+    # Processing each row
+    for row in df_csv_network.itertuples(index=False):
+        pid_pid  = row.PID
+        ip   = row.Dst_Addr
+        evnt = row.Event_Name
+        time = row.Time        
+
+        #  We need to find the UniqueKey of pid. So first extracting the index of it.
+        row_idx_pid = (df_csv_process.loc[(df_csv_process['PID'] ==  pid_pid)]).index
+
+    # Extracting values using at; Using [0] as there can be multiple enteries
+        pid_psk   = df_csv_process.at[row_idx_pid[0],'UniqueProcessKey']
+
+        # The row is relevant is the row.PID is the list_node
+        if pid_psk in lst_node or ip in lst_node:
 
             ip_event = str(ip) + '_' + str(evnt)
             if ip_event in dict_time.keys():
                 time_diff = time - dict_time[ip_event]
-                if time_diff > threshold_time:
+                if time_diff > threshold_time_network:
                     insert_row = True
                     dict_time.update({ip_event:time})
             else:
@@ -250,30 +281,36 @@ def task_network():
                     pid_nv = True
                     ip_nv = False
 
+                row_idx_pid  = (df_data.loc[(df_data['UniqueKey'] == pid_psk ) & (df_data['ID'] == pid_pid )]).index
+                row_idx_ip = (df_data.loc[(df_data['UniqueKey'] == ip) & (df_data['ID'] == ip)]).index
+            
+                pid_count  = df_data.at[row_idx_pid[0] ,"Count"]
+                ip_count = df_data.at[row_idx_ip[0],"Count"]                    
+
                 if pid_nv == True:
-                    u_pid = str(pid) + "_" + str(process_count[pid])
+                    u_pid = str(pid_psk) + "_" + str(pid_count)
                 else:
-                    if process_count[pid] == 0:
-                        u_pid = str(pid) + "_" + str(process_count[pid])
+                    if pid_count == 0:
+                        u_pid = str(pid_psk) + "_" + str(pid_count)
                     else:
-                        u_pid = str(pid) + "_" + str(process_count[pid] - 1)
+                        u_pid = str(pid_psk) + "_" + str(pid_count - 1)
                     
 
                 if ip_nv == True:
-                    u_ip = str(ip) + "_" + str(process_count[ip])
+                    u_ip = str(ip) + "_" + str(ip_count)
                 else:
-                    if process_count[ip] == 0:
-                        u_ppid = str(ip) + "_" + str(process_count[ip])    
+                    if ip_count == 0:
+                        u_ppid = str(ip) + "_" + str(ip_count)    
                     else:
-                        u_ppid = str(ip) + "_" + str(process_count[ip] - 1)
+                        u_ppid = str(ip) + "_" + str(ip_count - 1)
 
 
                 if row.Event_Name == 'TcpIp/Send':
                     # If Process_Start, the edge should be Parent_Id to Process_Id
                     src = u_pid
                     dst = u_ip
-                    id_src = pid
-                    id_dst = ip
+                    id_src = row_idx_pid
+                    id_dst = row_idx_ip
                     shape_src = 'box'
                     shape_dst = 'diamond'
 
@@ -281,19 +318,19 @@ def task_network():
                     # If Process_Stop, the edge should be Process_Id to Parent_Id
                     src = u_ip
                     dst = u_pid
-                    id_src = ip
-                    id_dst = pid
+                    id_src = row_idx_ip
+                    id_dst = row_idx_pid
                     shape_src = 'diamond'
                     shape_dst = 'box'
 
 
                 if not G.has_node(src):
                     G.add_node(src, shape=shape_src)
-                    process_count[id_src] += 1
+                    df_data.at[id_src[0],'Count'] += 1
 
                 if not G.has_node(dst):
                     G.add_node(dst, shape=shape_dst)
-                    process_count[id_dst] += 1 
+                    df_data.at[id_dst[0],'Count'] += 1
 
             # Add the Edge
                 if not (G.has_edge(src,dst) or G.has_edge(dst,src)):
@@ -415,9 +452,7 @@ def task_fileio():
 def dottedline():
 
     global df_data
-    print(df_data)
     for row in df_data.itertuples(index=False):
-
         key = row.UniqueKey
         count = row.Count
         if count > 1:
@@ -452,8 +487,11 @@ def mapping_proc():
 
 if __name__ == "__main__":
     get_relevant_process()
+    get_relevant_network()
     df_data = pd.DataFrame(lst_df_data)
+    print(df_data)
     process_relevant_process()
+    process_relevant_network()
     #task_network()
     #task_fileio()
     dottedline()

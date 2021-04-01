@@ -21,10 +21,10 @@ for item in titles:
         pname = item.get('PName')
         filename = item.get('FileName')
         pid= item.get('PID')
-        uid = item.get('FileKey')
+#        filekey = item.get('FileKey')
         filename = re.escape(filename)
         fileobject = item.get('FileObject')
-        row = (event, pname, filename, time, pid, uid, fileobject)
+        row = (event, pname, filename, time, pid, fileobject)
         fileio.append(row)
         #fileio = sorted(set(fileio))
         
@@ -57,7 +57,7 @@ for item in titles:
         #process = sorted(set(process))
 
 with open("csv_files/FileIO.csv", 'w', newline="") as f:
-    fields  = ['Event_Name', 'Process_Name', 'File_Path', 'Time','PID', 'FileKey']
+    fields  = ['Event_Name', 'Process_Name', 'File_Path', 'Time','PID', 'FileObject']
     write = csv.writer(f)
     write.writerow(fields) 
     write.writerows(fileio)
