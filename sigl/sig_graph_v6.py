@@ -36,6 +36,7 @@ df_data = pd.DataFrame()
 dict_time = {}
 df_csv_process = pd.read_csv(r'csv_files/Process.csv',  header = 0)
 df_csv_network = pd.read_csv(r'csv_files/Network.csv',  header = 0)
+df_csv_fileio  = pd.read_csv(r'csv_files/FileIO.csv',  header = 0)
 
 
 def get_relevant_process():
@@ -340,6 +341,38 @@ def process_relevant_network():
 
             insert_row = False
 
+def get_relevant_fileio():
+
+    global lst_node
+    global df_data
+    global df_csv_process
+    global df_csv_fileio
+
+    
+    # Processing each row
+    for row in df_csv_fileio.itertuples(index=False):
+        pid =  row.PID
+        filekey = row.FileKey
+        fileobject = row.FileObject
+        file_path = row.File_Path
+        evnt = row.Event_Name
+        time = row.Time        
+
+        #  We need to find the UniqueKey of pid. So first extracting the index of it.
+        row_idx_pid = (df_csv_process.loc[(df_csv_process['PID'] ==  pid)]).index
+
+    # Extracting values using at; Using [0] as there can be multiple enteries
+        if row_idx_pid.empty:
+            pid_psk = "0xDEADBEEF"
+        else:
+            pid_psk   = df_csv_process.at[row_idx_pid[0],'UniqueProcessKey']
+
+        # The row is relevant is the row.PID is the list_node
+        if pid_psk in lst_node or filekey in lst_node:
+
+            temp_dict = {  "UniqueKey": filekey, "ID": filekey, "Name": file_path, "Type": "FileIO", "Count": 0, "PrevTime": 0.0}
+            if temp_dict not in lst_df_data:
+                lst_df_data.append(temp_dict)
 
 
 def task_fileio():
@@ -352,7 +385,7 @@ def task_fileio():
     insert_row = False
 
     """Start with parsing fileio"""
-    df = pd.read_csv(r'csv_files/FileIO.csv',  header = 0)
+    
 
     # Creating counter for filepath
     u_filepath = list(df.File_Path.unique())    
@@ -488,8 +521,9 @@ def mapping_proc():
 if __name__ == "__main__":
     get_relevant_process()
     get_relevant_network()
+    get_relevant_fileio()
     df_data = pd.DataFrame(lst_df_data)
-    print(df_data)
+    df_data.to_csv("horrible.csv")
     process_relevant_process()
     process_relevant_network()
     #task_network()
