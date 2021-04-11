@@ -1,8 +1,103 @@
-Event_Name,Process_Name,File_Path,Time,Process_Id,Parent_Id,exe,PID,UniqueProcessKey
-Process/DCStart,PerfView,"""C:\\Users\\User\\Downloads\\PerfView\\PerfView\.exe""\ /RestartingToElevelate:run\ \ /MinSecForTrigger:0\ /KernelEvents:Default,FileIOInit\ /ClrEvents:None\ /NoGui\ /LogFile:""logfile\.txt""\ /NoView\ Run\ C:\\Users\\User\\Downloads\\ccsetup574\.exe\ /S",22.5988,"3,568","3,148",PerfView.exe,3568,0x85236030
-Process/Start,ccsetup574,"""C:\\Users\\User\\Downloads\\ccsetup574\.exe""\ /S",292.5975,"3,432","3,568",ccsetup574.exe,3432,0x84CF52A0
-Process/Start,CCleaner,"""C:\\Program\ Files\\CCleaner\\CCleaner\.exe""\ /createSkipUAC\ ",5598.1519,"2,004","3,432",CCleaner.exe,2004,0x84D37D20
-Process/Start,CCUpdate,"""C:\\Program\ Files\\CCleaner\\CCUpdate\.exe""\ /reg",5636.2341,"3,468","3,432",CCUpdate.exe,3468,0x85890030
-Process/Stop,ccsetup574,"""C:\\Users\\User\\Downloads\\ccsetup574\.exe""\ /S",5664.0103,"3,432","3,568",ccsetup574.exe,3432,0x84CF52A0
-Process/DCStop,CCleaner,"""C:\\Program\ Files\\CCleaner\\CCleaner\.exe""\ /createSkipUAC\ ",5830.4738,"2,004","3,432",CCleaner.exe,2004,0x84D37D20
-Process/DCStop,CCUpdate,"""C:\\Program\ Files\\CCleaner\\CCUpdate\.exe""\ /reg",5830.7408,"3,468","3,432",CCUpdate.exe,3468,0x85890030
+Time,EventName,PID,PName,ProcessID,ParentID,CommandLine,ImageBase,UniqueProcessKey
+9.6924,Process/DCStart,0,Idle,0,0,,Idle,0x82930780
+9.6964,Process/DCStart,4,System,4,0,,System,0x8483C948
+9.7548,Process/DCStart,252,smss,252,4,\\SystemRoot\\System32\\smss\.exe,smss.exe,0x84F3CD20
+9.7908,Process/DCStart,328,csrss,328,312,"%SystemRoot%\\system32\\csrss\.exe\ ObjectDirectory=\\Windows\ SharedSection=1024,12288,512\ Windows=On\ SubSystemType=Windows\ ServerDll=basesrv,1\ ServerDll=winsrv:UserServerDllInitialization,3\ ServerDll=winsrv:ConServerDllInitialization,2\ ServerDll=sxssrv,4\ ProfileControl=Off\ MaxRequestThreads=16",csrss.exe,0x8568E458
+9.9025,Process/DCStart,364,wininit,364,312,wininit\.exe,wininit.exe,0x856AAD20
+10.0463,Process/DCStart,372,csrss,372,356,"%SystemRoot%\\system32\\csrss\.exe\ ObjectDirectory=\\Windows\ SharedSection=1024,12288,512\ Windows=On\ SubSystemType=Windows\ ServerDll=basesrv,1\ ServerDll=winsrv:UserServerDllInitialization,3\ ServerDll=winsrv:ConServerDllInitialization,2\ ServerDll=sxssrv,4\ ProfileControl=Off\ MaxRequestThreads=16",csrss.exe,0x856A7560
+10.1423,Process/DCStart,400,winlogon,400,356,winlogon\.exe,winlogon.exe,0x856BBD20
+10.2899,Process/DCStart,460,services,460,364,C:\\Windows\\system32\\services\.exe,services.exe,0x856D95A8
+10.4431,Process/DCStart,468,lsass,468,364,C:\\Windows\\system32\\lsass\.exe,lsass.exe,0x856E4100
+10.9541,Process/DCStart,476,lsm,476,364,C:\\Windows\\system32\\lsm\.exe,lsm.exe,0x856E63F8
+11.0554,Process/DCStart,584,svchost,584,460,C:\\Windows\\system32\\svchost\.exe\ \-k\ DcomLaunch,svchost.exe,0x85756030
+11.2992,Process/DCStart,644,VBoxService,644,460,C:\\Windows\\System32\\VBoxService\.exe,VBoxService.exe,0x8576BA48
+11.4664,Process/DCStart,700,svchost,700,460,C:\\Windows\\system32\\svchost\.exe\ \-k\ RPCSS,svchost.exe,0x8577B318
+11.6116,Process/DCStart,788,svchost,788,460,C:\\Windows\\System32\\svchost\.exe\ \-k\ LocalServiceNetworkRestricted,svchost.exe,0x8579D988
+12.1546,Process/DCStart,856,svchost,856,460,C:\\Windows\\System32\\svchost\.exe\ \-k\ LocalSystemNetworkRestricted,svchost.exe,0x857B8D20
+12.5763,Process/DCStart,904,svchost,904,460,C:\\Windows\\system32\\svchost\.exe\ \-k\ LocalService,svchost.exe,0x857C5648
+13.1216,Process/DCStart,928,svchost,928,460,C:\\Windows\\system32\\svchost\.exe\ \-k\ netsvcs,svchost.exe,0x857DE030
+13.9816,Process/DCStart,1164,svchost,"1,164",460,C:\\Windows\\system32\\svchost\.exe\ \-k\ NetworkService,svchost.exe,0x85823368
+14.3222,Process/DCStart,1328,spoolsv,"1,328",460,C:\\Windows\\System32\\spoolsv\.exe,spoolsv.exe,0x85864540
+14.7771,Process/DCStart,1356,svchost,"1,356",460,C:\\Windows\\system32\\svchost\.exe\ \-k\ LocalServiceNoNetwork,svchost.exe,0x85873030
+15.0829,Process/DCStart,1440,svchost,"1,440",460,C:\\Windows\\System32\\svchost\.exe\ \-k\ utcsvc,svchost.exe,0x858B0A20
+15.3288,Process/DCStart,1468,svchost,"1,468",460,C:\\Windows\\system32\\svchost\.exe\ \-k\ LocalServiceAndNoImpersonation,svchost.exe,0x858B7BB0
+15.5632,Process/DCStart,528,taskhost,528,460,"""taskhost\.exe""",taskhost.exe,0x859EDD20
+15.9724,Process/DCStart,1232,sppsvc,"1,232",460,C:\\Windows\\system32\\sppsvc\.exe,sppsvc.exe,0x85997A90
+16.1584,Process/DCStart,280,dwm,280,856,"""C:\\Windows\\system32\\Dwm\.exe""",dwm.exe,0x8579E920
+16.2807,Process/DCStart,1504,explorer,"1,504",264,C:\\Windows\\Explorer\.EXE,explorer.exe,0x857CD168
+17.1635,Process/DCStart,996,VBoxTray,996,"1,504","""C:\\Windows\\System32\\VBoxTray\.exe""\ ",VBoxTray.exe,0x85A4F030
+17.4118,Process/DCStart,852,jusched,852,"1,504","""C:\\Program\ Files\\Common\ Files\\Java\\Java\ Update\\jusched\.exe""\ ",jusched.exe,0x85A53A80
+17.5619,Process/DCStart,356,WzPreloader,356,"1,504","""C:\\Program\ Files\\WinZip\\WzPreloader\.exe""\ ",WzPreloader.exe,0x85A5E828
+17.7042,Process/DCStart,376,FAHWindow32,376,804,"""C:\\Program\ Files\\WinZip\\FAHWindow32\.exe""\ register",FAHWindow32.exe,0x85A69A88
+17.8506,Process/DCStart,2356,SearchIndexer,"2,356",460,C:\\Windows\\system32\\SearchIndexer\.exe\ /Embedding,SearchIndexer.exe,0x85BA2320
+18.2248,Process/DCStart,2564,wmpnetwk,"2,564",460,"""C:\\Program\ Files\\Windows\ Media\ Player\\wmpnetwk\.exe""",wmpnetwk.exe,0x85BE7988
+18.6759,Process/DCStart,2748,svchost,"2,748",460,C:\\Windows\\System32\\svchost\.exe\ \-k\ LocalServicePeerNet,svchost.exe,0x85C44918
+18.9704,Process/DCStart,3492,svchost,"3,492",460,C:\\Windows\\System32\\svchost\.exe\ \-k\ secsvcs,svchost.exe,0x85CC39C8
+19.3382,Process/DCStart,4024,wuauclt,"4,024",928,"""C:\\Windows\\system32\\wuauclt\.exe""",wuauclt.exe,0x84BF3030
+19.5015,Process/DCStart,2304,cmd,"2,304","1,504","""C:\\Windows\\system32\\cmd\.exe""\ ",cmd.exe,0x84D47618
+19.5718,Process/DCStart,2948,conhost,"2,948",372,"\\\?\?\\C:\\Windows\\system32\\conhost\.exe\ ""1310468331\-1645937301\-2082921458\-1344159721923051395\-412101820838371722093784756\ ",conhost.exe,0x85709D20
+19.6667,Process/DCStart,2524,powershell,"2,524","1,504","""C:\\WINDOWS\\system32\\WindowsPowerShell\\v1\.0\\powershell\.exe""\ ",powershell.exe,0x8516E300
+20.1460,Process/DCStart,3676,conhost,"3,676",372,"\\\?\?\\C:\\Windows\\system32\\conhost\.exe\ ""482353396\-2013623713\-1727031060\-15009959647351877371761942207\-363198719\-107479325\ ",conhost.exe,0x85170BF8
+20.2405,Process/DCStart,3588,audiodg,"3,588",788,C:\\Windows\\system32\\AUDIODG\.EXE\ 0x354,audiodg.exe,0x849C4978
+20.4577,Process/DCStart,3380,WmiPrvSE,"3,380",584,C:\\Windows\\system32\\wbem\\wmiprvse\.exe\ \-Embedding,WmiPrvSE.exe,0x8588F030
+20.6187,Process/DCStart,1008,PerfView,"1,008","1,504","""C:\\Users\\User\\Downloads\\PerfView\\PerfView\.exe""\ ",PerfView.exe,0x84C253F8
+21.3462,Process/DCStart,2548,SearchProtocolHost,"2,548","2,356","""C:\\Windows\\system32\\SearchProtocolHost\.exe""\ Global\\UsGthrFltPipeMssGthrPipe10_\ Global\\UsGthrCtrlFltPipeMssGthrPipe10\ 1\ \-2147483646\ ""Software\\Microsoft\\Windows\ Search""\ ""Mozilla/4\.0\ \(compatible;\ MSIE\ 6\.0;\ Windows\ NT;\ MS\ Search\ 4\.0\ Robot\)""\ ""C:\\ProgramData\\Microsoft\\Search\\Data\\Temp\\usgthrsvc""\ ""DownLevelDaemon""\ ",SearchProtocolHost.exe,0x85A6E648
+21.8964,Process/DCStart,2912,WmiPrvSE,"2,912",584,C:\\Windows\\system32\\wbem\\wmiprvse\.exe\ \-secured\ \-Embedding,WmiPrvSE.exe,0x8588E030
+22.1010,Process/DCStart,2156,SearchFilterHost,"2,156","2,356","""C:\\Windows\\system32\\SearchFilterHost\.exe""\ 0\ 508\ 512\ 520\ 65536\ 516\ ",SearchFilterHost.exe,0x84A42030
+22.2427,Process/DCStart,216,dllhost,216,584,C:\\Windows\\system32\\DllHost\.exe\ /Processid:\{E10F6C3A\-F1AE\-4ADC\-AA9D\-2FE65525666E\},dllhost.exe,0x85890030
+22.3893,Process/DCStart,3764,dllhost,"3,764",584,C:\\Windows\\system32\\DllHost\.exe\ /Processid:\{E10F6C3A\-F1AE\-4ADC\-AA9D\-2FE65525666E\},dllhost.exe,0x84D37D20
+22.5988,Process/DCStart,3568,PerfView,"3,568","3,148","""C:\\Users\\User\\Downloads\\PerfView\\PerfView\.exe""\ /RestartingToElevelate:run\ \ /MinSecForTrigger:0\ /KernelEvents:Default,FileIOInit\ /ClrEvents:None\ /NoGui\ /LogFile:""logfile\.txt""\ /NoView\ Run\ C:\\Users\\User\\Downloads\\ccsetup574\.exe\ /S",PerfView.exe,0x85236030
+292.5975,Process/Start,3432,ccsetup574,"3,432","3,568","""C:\\Users\\User\\Downloads\\ccsetup574\.exe""\ /S",ccsetup574.exe,0x84CF52A0
+4839.5395,Process/Stop,216,dllhost,216,584,C:\\Windows\\system32\\DllHost\.exe\ /Processid:\{E10F6C3A\-F1AE\-4ADC\-AA9D\-2FE65525666E\},dllhost.exe,0x85890030
+4863.7442,Process/Stop,3764,dllhost,"3,764",584,C:\\Windows\\system32\\DllHost\.exe\ /Processid:\{E10F6C3A\-F1AE\-4ADC\-AA9D\-2FE65525666E\},dllhost.exe,0x84D37D20
+5598.1519,Process/Start,2004,CCleaner,"2,004","3,432","""C:\\Program\ Files\\CCleaner\\CCleaner\.exe""\ /createSkipUAC\ ",CCleaner.exe,0x84D37D20
+5636.2341,Process/Start,3468,CCUpdate,"3,468","3,432","""C:\\Program\ Files\\CCleaner\\CCUpdate\.exe""\ /reg",CCUpdate.exe,0x85890030
+5664.0103,Process/Stop,3432,ccsetup574,"3,432","3,568","""C:\\Users\\User\\Downloads\\ccsetup574\.exe""\ /S",ccsetup574.exe,0x84CF52A0
+5817.9684,Process/DCStop,0,Idle,0,0,,Idle,0x82930780
+5818.0942,Process/DCStop,4,System,4,0,,System,0x8483C948
+5818.2471,Process/DCStop,252,smss,252,4,\\SystemRoot\\System32\\smss\.exe,smss.exe,0x84F3CD20
+5818.3641,Process/DCStop,328,csrss,328,312,"%SystemRoot%\\system32\\csrss\.exe\ ObjectDirectory=\\Windows\ SharedSection=1024,12288,512\ Windows=On\ SubSystemType=Windows\ ServerDll=basesrv,1\ ServerDll=winsrv:UserServerDllInitialization,3\ ServerDll=winsrv:ConServerDllInitialization,2\ ServerDll=sxssrv,4\ ProfileControl=Off\ MaxRequestThreads=16",csrss.exe,0x8568E458
+5818.4829,Process/DCStop,364,wininit,364,312,wininit\.exe,wininit.exe,0x856AAD20
+5818.5700,Process/DCStop,372,csrss,372,356,"%SystemRoot%\\system32\\csrss\.exe\ ObjectDirectory=\\Windows\ SharedSection=1024,12288,512\ Windows=On\ SubSystemType=Windows\ ServerDll=basesrv,1\ ServerDll=winsrv:UserServerDllInitialization,3\ ServerDll=winsrv:ConServerDllInitialization,2\ ServerDll=sxssrv,4\ ProfileControl=Off\ MaxRequestThreads=16",csrss.exe,0x856A7560
+5818.7179,Process/DCStop,400,winlogon,400,356,winlogon\.exe,winlogon.exe,0x856BBD20
+5818.8628,Process/DCStop,460,services,460,364,C:\\Windows\\system32\\services\.exe,services.exe,0x856D95A8
+5819.2048,Process/DCStop,468,lsass,468,364,C:\\Windows\\system32\\lsass\.exe,lsass.exe,0x856E4100
+5819.3409,Process/DCStop,476,lsm,476,364,C:\\Windows\\system32\\lsm\.exe,lsm.exe,0x856E63F8
+5819.6529,Process/DCStop,584,svchost,584,460,C:\\Windows\\system32\\svchost\.exe\ \-k\ DcomLaunch,svchost.exe,0x85756030
+5819.8109,Process/DCStop,644,VBoxService,644,460,C:\\Windows\\System32\\VBoxService\.exe,VBoxService.exe,0x8576BA48
+5819.9758,Process/DCStop,700,svchost,700,460,C:\\Windows\\system32\\svchost\.exe\ \-k\ RPCSS,svchost.exe,0x8577B318
+5820.4099,Process/DCStop,788,svchost,788,460,C:\\Windows\\System32\\svchost\.exe\ \-k\ LocalServiceNetworkRestricted,svchost.exe,0x8579D988
+5820.9561,Process/DCStop,856,svchost,856,460,C:\\Windows\\System32\\svchost\.exe\ \-k\ LocalSystemNetworkRestricted,svchost.exe,0x857B8D20
+5821.4973,Process/DCStop,904,svchost,904,460,C:\\Windows\\system32\\svchost\.exe\ \-k\ LocalService,svchost.exe,0x857C5648
+5822.3300,Process/DCStop,928,svchost,928,460,C:\\Windows\\system32\\svchost\.exe\ \-k\ netsvcs,svchost.exe,0x857DE030
+5822.6780,Process/DCStop,1164,svchost,"1,164",460,C:\\Windows\\system32\\svchost\.exe\ \-k\ NetworkService,svchost.exe,0x85823368
+5823.0163,Process/DCStop,1328,spoolsv,"1,328",460,C:\\Windows\\System32\\spoolsv\.exe,spoolsv.exe,0x85864540
+5823.3823,Process/DCStop,1356,svchost,"1,356",460,C:\\Windows\\system32\\svchost\.exe\ \-k\ LocalServiceNoNetwork,svchost.exe,0x85873030
+5823.6179,Process/DCStop,1440,svchost,"1,440",460,C:\\Windows\\System32\\svchost\.exe\ \-k\ utcsvc,svchost.exe,0x858B0A20
+5823.8295,Process/DCStop,1468,svchost,"1,468",460,C:\\Windows\\system32\\svchost\.exe\ \-k\ LocalServiceAndNoImpersonation,svchost.exe,0x858B7BB0
+5824.1460,Process/DCStop,528,taskhost,528,460,"""taskhost\.exe""",taskhost.exe,0x859EDD20
+5824.2648,Process/DCStop,1232,sppsvc,"1,232",460,C:\\Windows\\system32\\sppsvc\.exe,sppsvc.exe,0x85997A90
+5824.3836,Process/DCStop,280,dwm,280,856,"""C:\\Windows\\system32\\Dwm\.exe""",dwm.exe,0x8579E920
+5825.3463,Process/DCStop,1504,explorer,"1,504",264,C:\\Windows\\Explorer\.EXE,explorer.exe,0x857CD168
+5825.4682,Process/DCStop,996,VBoxTray,996,"1,504","""C:\\Windows\\System32\\VBoxTray\.exe""\ ",VBoxTray.exe,0x85A4F030
+5825.6114,Process/DCStop,852,jusched,852,"1,504","""C:\\Program\ Files\\Common\ Files\\Java\\Java\ Update\\jusched\.exe""\ ",jusched.exe,0x85A53A80
+5825.8439,Process/DCStop,356,WzPreloader,356,"1,504","""C:\\Program\ Files\\WinZip\\WzPreloader\.exe""\ ",WzPreloader.exe,0x85A5E828
+5825.9679,Process/DCStop,376,FAHWindow32,376,804,"""C:\\Program\ Files\\WinZip\\FAHWindow32\.exe""\ register",FAHWindow32.exe,0x85A69A88
+5826.3879,Process/DCStop,2356,SearchIndexer,"2,356",460,C:\\Windows\\system32\\SearchIndexer\.exe\ /Embedding,SearchIndexer.exe,0x85BA2320
+5826.6974,Process/DCStop,2564,wmpnetwk,"2,564",460,"""C:\\Program\ Files\\Windows\ Media\ Player\\wmpnetwk\.exe""",wmpnetwk.exe,0x85BE7988
+5827.2126,Process/DCStop,2748,svchost,"2,748",460,C:\\Windows\\System32\\svchost\.exe\ \-k\ LocalServicePeerNet,svchost.exe,0x85C44918
+5827.5417,Process/DCStop,3492,svchost,"3,492",460,C:\\Windows\\System32\\svchost\.exe\ \-k\ secsvcs,svchost.exe,0x85CC39C8
+5827.6981,Process/DCStop,4024,wuauclt,"4,024",928,"""C:\\Windows\\system32\\wuauclt\.exe""",wuauclt.exe,0x84BF3030
+5827.7801,Process/DCStop,2304,cmd,"2,304","1,504","""C:\\Windows\\system32\\cmd\.exe""\ ",cmd.exe,0x84D47618
+5827.8698,Process/DCStop,2948,conhost,"2,948",372,"\\\?\?\\C:\\Windows\\system32\\conhost\.exe\ ""1310468331\-1645937301\-2082921458\-1344159721923051395\-412101820838371722093784756\ ",conhost.exe,0x85709D20
+5828.2705,Process/DCStop,2524,powershell,"2,524","1,504","""C:\\WINDOWS\\system32\\WindowsPowerShell\\v1\.0\\powershell\.exe""\ ",powershell.exe,0x8516E300
+5828.4242,Process/DCStop,3676,conhost,"3,676",372,"\\\?\?\\C:\\Windows\\system32\\conhost\.exe\ ""482353396\-2013623713\-1727031060\-15009959647351877371761942207\-363198719\-107479325\ ",conhost.exe,0x85170BF8
+5828.5991,Process/DCStop,3588,audiodg,"3,588",788,C:\\Windows\\system32\\AUDIODG\.EXE\ 0x354,audiodg.exe,0x849C4978
+5828.7370,Process/DCStop,3380,WmiPrvSE,"3,380",584,C:\\Windows\\system32\\wbem\\wmiprvse\.exe\ \-Embedding,WmiPrvSE.exe,0x8588F030
+5829.2075,Process/DCStop,1008,PerfView,"1,008","1,504","""C:\\Users\\User\\Downloads\\PerfView\\PerfView\.exe""\ ",PerfView.exe,0x84C253F8
+5829.4923,Process/DCStop,2548,SearchProtocolHost,"2,548","2,356","""C:\\Windows\\system32\\SearchProtocolHost\.exe""\ Global\\UsGthrFltPipeMssGthrPipe10_\ Global\\UsGthrCtrlFltPipeMssGthrPipe10\ 1\ \-2147483646\ ""Software\\Microsoft\\Windows\ Search""\ ""Mozilla/4\.0\ \(compatible;\ MSIE\ 6\.0;\ Windows\ NT;\ MS\ Search\ 4\.0\ Robot\)""\ ""C:\\ProgramData\\Microsoft\\Search\\Data\\Temp\\usgthrsvc""\ ""DownLevelDaemon""\ ",SearchProtocolHost.exe,0x85A6E648
+5829.7103,Process/DCStop,2912,WmiPrvSE,"2,912",584,C:\\Windows\\system32\\wbem\\wmiprvse\.exe\ \-secured\ \-Embedding,WmiPrvSE.exe,0x8588E030
+5829.8271,Process/DCStop,2156,SearchFilterHost,"2,156","2,356","""C:\\Windows\\system32\\SearchFilterHost\.exe""\ 0\ 508\ 512\ 520\ 65536\ 516\ ",SearchFilterHost.exe,0x84A42030
+5830.2139,Process/DCStop,3568,PerfView,"3,568","3,148","""C:\\Users\\User\\Downloads\\PerfView\\PerfView\.exe""\ /RestartingToElevelate:run\ \ /MinSecForTrigger:0\ /KernelEvents:Default,FileIOInit\ /ClrEvents:None\ /NoGui\ /LogFile:""logfile\.txt""\ /NoView\ Run\ C:\\Users\\User\\Downloads\\ccsetup574\.exe\ /S",PerfView.exe,0x85236030
+5830.4738,Process/DCStop,2004,CCleaner,"2,004","3,432","""C:\\Program\ Files\\CCleaner\\CCleaner\.exe""\ /createSkipUAC\ ",CCleaner.exe,0x84D37D20
+5830.7408,Process/DCStop,3468,CCUpdate,"3,468","3,432","""C:\\Program\ Files\\CCleaner\\CCUpdate\.exe""\ /reg",CCUpdate.exe,0x85890030
