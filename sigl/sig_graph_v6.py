@@ -27,8 +27,8 @@ process_count = {}
 lst_node = []
 list_dict_pc = []
 # Setting Threshold to 5 seconds
-threshold_time_network = 10
-threshold_time_file = 10
+threshold_time_network = 10000
+threshold_time_file = 10000
 pid_mapping = {}
 pname_mapping = {}
 lst_df_data = []
@@ -301,9 +301,9 @@ def process_relevant_network():
                     u_ip = str(ip) + "_" + str(ip_count)
                 else:
                     if ip_count == 0:
-                        u_ppid = str(ip) + "_" + str(ip_count)    
+                        u_ip = str(ip) + "_" + str(ip_count)    
                     else:
-                        u_ppid = str(ip) + "_" + str(ip_count - 1)
+                        u_ip = str(ip) + "_" + str(ip_count - 1)
 
 
                 if row.Event_Name == 'TcpIp/Send':
@@ -355,7 +355,7 @@ def get_relevant_fileio():
         filekey = row.FileKey
         fileobject = row.FileObject
         file_path = row.File_Path
-        evnt = row.Event_Name
+        event = row.Event_Name
         time = row.Time        
 
         #  We need to find the UniqueKey of pid. So first extracting the index of it.
@@ -369,13 +369,14 @@ def get_relevant_fileio():
 
         # The row is relevant is the row.PID is the list_node
         if pid_psk in lst_node or filekey in lst_node:
+            
+            if event == 'FileIO/Write' or event == 'FileIO/Delete' or event == 'FileIO/Read':
+                temp_dict = {  "UniqueKey": filekey, "ID": filekey, "Name": file_path, "Type": "FileIO", "Count": 0, "PrevTime": 0.0}
+                if temp_dict not in lst_df_data:
+                    lst_df_data.append(temp_dict)
 
-            temp_dict = {  "UniqueKey": filekey, "ID": filekey, "Name": file_path, "Type": "FileIO", "Count": 0, "PrevTime": 0.0}
-            if temp_dict not in lst_df_data:
-                lst_df_data.append(temp_dict)
 
-
-def task_fileio():
+def process_relevant_fileio():
 
     global process_count
     global list_node
@@ -386,101 +387,107 @@ def task_fileio():
 
     """Start with parsing fileio"""
     
+   # Process other rows
+    for row in df_csv_fileio.itertuples(index=False):
 
-    # Creating counter for filepath
-    u_filepath = list(df.File_Path.unique())    
-    for row in u_filepath:
-        process_count.update({row:0}) 
-
-    u_pid = list(df.FileKey.unique())    
-    for row in u_pid:
-        if not row in process_count:
-            process_count.update({row:0})
-
-    # Process other rows
-    for row in df.itertuples(index=False):
-
-        pid = row.FileKey
+        pid_pid = row.PID
+        filekey = row.FileKey
         file = row.File_Path
         evnt = row.Event_Name
         time = row.Time    
-        # If relevant
-        if pid in list_node or file in list_node:
+    
 
-            file_event = str(file) + '_' + str(evnt)
-            if file_event in dict_time.keys():
-                time_diff = time - dict_time[file_event]
-                if time_diff > threshold_time:
+            #  We need to find the UniqueKey of pid. So first extracting the index of it.
+        row_idx_pid = (df_csv_process.loc[(df_csv_process['PID'] ==  pid_pid)]).index
+    # Extracting values using at; Using [0] as there can be multiple enteries
+        if not row_idx_pid.empty and evnt != 'FileIO/Create':
+
+            pid_psk   = df_csv_process.at[row_idx_pid[0],'UniqueProcessKey']
+
+            # If relevant
+            if pid_psk in lst_node or filekey in lst_node:
+
+                file_event = str(file) + '_' + str(evnt)
+                if file_event in dict_time.keys():
+                    time_diff = time - dict_time[file_event]
+                    if time_diff > threshold_time_file:
+                        insert_row = True
+                        dict_time.update({file_event:time})
+                else:
                     insert_row = True
                     dict_time.update({file_event:time})
-            else:
-                insert_row = True
-                dict_time.update({file_event:time})
 
-            if insert_row:
-            
-                if row.Event_Name == 'FileIO/Write':
-                    pid_nv = False
-                    file_nv = True
-                elif row.Event_Name == 'FileIO/Read':
-                    pid_nv = True
-                    file_nv = False
-                elif row.Event_Name == 'FileIO/Delete':
-                    pid_nv = False
-                    file_nv = True
-                elif row.Event_Name == 'FileIO/Create':
-                    pid_nv = False
-                    file_nv = True
+                if insert_row:
+                
+                    if row.Event_Name == 'FileIO/Write':
+                        pid_nv = False
+                        file_nv = True
+                    elif row.Event_Name == 'FileIO/Read':
+                        pid_nv = True
+                        file_nv = False
+                    elif row.Event_Name == 'FileIO/Delete':
+                        pid_nv = False
+                        file_nv = True
+                    elif row.Event_Name == 'FileIO/Create':
+                        pid_nv = False
+                        file_nv = True
 
-                if pid_nv == True:
-                    u_pid = str(pid) + "_" + str(process_count[pid])
-                else:
-                    if process_count[pid] == 0:
-                        u_pid = str(pid) + "_" + str(process_count[pid])
-                    else:
-                        u_pid = str(pid) + "_" + str(process_count[pid] - 1)
                     
+                    row_idx_pid  = (df_data.loc[(df_data['UniqueKey'] == pid_psk ) & (df_data['ID'] == pid_pid )]).index
+                    row_idx_file = (df_data.loc[(df_data['UniqueKey'] == filekey) & (df_data['ID'] == filekey)]).index
+                
+                    pid_count  = df_data.at[row_idx_pid[0] ,"Count"]
+                    file_count = df_data.at[row_idx_file[0],"Count"]    
 
-                if file_nv == True:
-                    u_file = str(file) + "_" + str(process_count[file])
-                else:
-                    if process_count[file] == 0:
-                        u_ppid = str(file) + "_" + str(process_count[file])    
+                    if pid_nv == True:
+                        u_pid = str(pid_psk) + "_" + str(pid_count)
                     else:
-                        u_ppid = str(file) + "_" + str(process_count[file] - 1)
-            
-                if row.Event_Name == 'FileIO/Read':
-                    # If Process_Start, the edge should be Parent_Id to Process_Id
-                    src = u_file
-                    dst = u_pid
-                    id_src = file
-                    id_dst = pid
-                    shape_src = 'ellipse'
-                    shape_dst = 'box'
-                else:
-                    # If Process_Stop, the edge should be Process_Id to Parent_Id
-                    src = u_pid
-                    dst = u_file
-                    id_src = pid
-                    id_dst = file
-                    shape_src = 'box'
-                    shape_dst = 'ellipse'                    
+                        if pid_count == 0:
+                            u_pid = str(pid_psk) + "_" + str(pid_count)
+                        else:
+                            u_pid = str(pid_psk) + "_" + str(pid_count - 1)
+                        
 
-                if not G.has_node(src):
-                    G.add_node(src, shape=shape_src)
-                    process_count[id_src] += 1
+                    if file_nv == True:
+                        u_file = str(filekey) + "_" + str(file_count)
+                    else:
+                        if file_count == 0:
+                            u_file = str(filekey) + "_" + str(file_count)    
+                        else:
+                            u_file = str(filekey) + "_" + str(file_count - 1)
+                
+                    if row.Event_Name == 'FileIO/Read':
+                        # If Process_Start, the edge should be Parent_Id to Process_Id
+                        src = u_file
+                        dst = u_pid
+                        id_src = row_idx_file
+                        id_dst = row_idx_pid
+                        shape_src = 'ellipse'
+                        shape_dst = 'box'
+                    else:
+                        # If Process_Stop, the edge should be Process_Id to Parent_Id
+                        src = u_pid
+                        dst = u_file
+                        id_src = row_idx_pid
+                        id_dst = row_idx_file
+                        shape_src = 'box'
+                        shape_dst = 'ellipse'                    
 
-                if not G.has_node(dst):
-                    G.add_node(dst, shape=shape_dst)
-                    process_count[id_dst] += 1 
+                    if not G.has_node(src):
+                        G.add_node(src, shape=shape_src)
+                        df_data.at[id_src[0],'Count'] += 1
 
-            # Add the Edge
-                if not (G.has_edge(src,dst) or G.has_edge(dst,src)):
-                    G.add_edge(src, dst, key= row.Event_Name, time=row.Time, EventType=row.Event_Name, xlabel= row.Event_Name[7:]) 
-                file_nv = False
-                pid_nv = False
+                    if not G.has_node(dst):
+                        G.add_node(dst, shape=shape_dst)
+                        df_data.at[id_dst[0],'Count'] += 1
 
-            insert_row = False
+                # Add the Edge
+                    if not (G.has_edge(src,dst) or G.has_edge(dst,src)):
+                        G.add_edge(src, dst, key= row.Event_Name, time=row.Time, EventType=row.Event_Name, xlabel= row.Event_Name[7:]) 
+                    file_nv = False
+                    pid_nv = False
+
+                insert_row = False
 
 def dottedline():
 
@@ -526,8 +533,7 @@ if __name__ == "__main__":
     df_data.to_csv("horrible.csv")
     process_relevant_process()
     process_relevant_network()
-    #task_network()
-    #task_fileio()
+    process_relevant_fileio()
     dottedline()
     mapping_proc()
 
